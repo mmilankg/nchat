@@ -1,0 +1,5 @@
+Run make to compile.  To start the server, execute ./src/server/ncServer from the terminal.  Start the client by
+executing ./src/client/ncClient from the terminal.
+
+The Makefile and files it includes are all very primitive.  I would like to set up a system that uses autotools, but I
+don't know how to use them yet.

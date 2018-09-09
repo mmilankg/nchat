@@ -1,0 +1,10 @@
+# Exclude bin, build and test directories.
+bin
+build
+test
+# Exclude dependency and object files.
+*.d
+*.o
+# Exclude executables.
+ncServer
+ncClient
