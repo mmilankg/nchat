@@ -48,6 +48,9 @@ class DistributorProcess : public Process {
     delete pMessageSegment;
   }
   int run();
+
+  private:
+  void checkUsername(int clientProcessID, const std::string& username) const;
 };
 
 #endif	// DISTRIBUTORPROCESS_H

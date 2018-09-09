@@ -8,6 +8,7 @@
 
 enum MessageType {
   mCheckUsername,   // check if a username exists when signing up a new user
+  mUsernameStatus,  // return status on the username query for new users
   mSignupName,	    // send the name of the user to be signed up
   mPassword,	    // send the password of the user to be signed up
   mText,	    // text message to another user
@@ -114,6 +115,11 @@ class Message {
     //std::memcpy(static_cast<char*>(contents.get()), src, messageLength);
     // Put 0 terminator at the end of the text.
     //std::memset(static_cast<char*>(contents.get()) + messageLength, 0, 1);
+  }
+  void releaseContents() {
+    // Release the memory allocated for the character array.
+    boost::interprocess::managed_shared_memory messageSegment(boost::interprocess::open_only, "messageQueueMemory");
+    messageSegment.destroy_ptr(contents);
   }
 };
 

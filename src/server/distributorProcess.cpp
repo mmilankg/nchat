@@ -75,28 +75,52 @@ int DistributorProcess::run() {
     if (pMessageQueue->size() == 0)
       continue;
 
-    const Message& message = pMessageQueue->front();
+    Message& message = pMessageQueue->front();
 
     /* Decode the message. */
     MessageType messageType = message.getType();
     pid_t messageSender = message.getSender();
     pid_t messageRecipient = message.getRecipient();
-    /* DBG: print message contents! */
-    std::cout << "type: " << messageType << std::endl;
-    std::cout << "from: " << messageSender << std::endl;
-    std::cout << "to: " << messageRecipient << std::endl;
-    //std::cout << "contents: " << message.read() << std::endl;
-    //std::cout << "contents: " << static_cast<char*>(message.read().get()) << std::endl;
-    /* DBG! */
-    //char* mRead = new char[message.getLength()];
-    //message.read(mRead, message.getLength());
-    //message.read(mRead);
-    //std::cout << "contents: " << mRead << std::endl;
-    // Remove the message from the queue if the recepient matches the process ID.
     char* msg = new char[message.getLength() + 1];
     message.read(msg);
-    std::cout << "contents: " << msg << std::endl;
-    if (messageRecipient == pid)
+    // Remove the message from the queue if the recepient matches the process ID.
+    if (messageRecipient == pid) {
+      // Release the memory allocated for the message contents;
+      message.releaseContents();
+      // Remove from the queue.
       pMessageQueue->pop_front();
+    }
+
+    // Process the message.
+    switch (messageType) {
+      case mCheckUsername :
+	checkUsername(messageSender, msg);
+	break;
+      default :		    break;
+    }
+    delete []msg;
   }
+}
+
+void DistributorProcess::checkUsername(int clientProcessID, const std::string& username) const {
+  /*
+   * Iterate through the vector of users and check if a user with the same name already exists.
+   * If the username is not taken, return a message to the client-dedicated process indicating
+   * that the chosen username is acceptable ("OK").  If the name has already been taken, return
+   * a message indicating that ("NOK").
+   */
+  boost::interprocess::vector<User, UserAllocator>::iterator userIterator;
+  for (userIterator = pUserVector->begin(); userIterator != pUserVector->end(); userIterator++) {
+    std::string registeredUsername = userIterator->getUsername();
+    if (username == registeredUsername)
+      break;
+  }
+  /*
+   * Allow the username if the iterator reached the end of the vector without finding the match.
+   * If the match was found, the loop is over before reaching the end of the vector.
+   */
+  if (userIterator == pUserVector->end())
+    pMessageQueue->push_back(Message(pid, clientProcessID, mUsernameStatus, 2, "OK"));
+  else
+    pMessageQueue->push_back(Message(pid, clientProcessID, mUsernameStatus, 3, "NOK"));
 }
