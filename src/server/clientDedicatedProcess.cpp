@@ -65,56 +65,56 @@ int ClientDedicatedProcess::signupUser() {
    * store the pointer or offset pointer in the queue.
    */
   pMessageQueue->push_back(Message(pid, distributorPid, mCheckUsername, username.length(), username.c_str()));
-  /*
-   * The number sent back to the user should indicate the response of
-   * the server:
-   * 0: the username and the password have been accepted
-   * 1: the username has already been taken
-   * for later implementation
-   * 2: the password is too short
-   * 3: the password does not have the right combination of
-   *	letters (at least one uppercase and one lowercase,
-   *	at least one number, and at least one other character)
-   */
-  // DBG: send 0 for the time being.
-  //rCommunicationSocket.send(0);
 
-  /*
-   * Add the user to the file listing all users and their contacts.
-   * This should be done with the locking mechanism so that the
-   * process has an exclusive access to the file while the write
-   * operation is ongoing.  This is left for later implementation.
-   */
-  /*
-  std::ifstream userFile(rUsersFileName.c_str());
-  std::string line;
-  // Parse the user file line by line.
-  while (getline(userFile, line)) {
-    std::istringstream ss(line);
-    std::string field;
-    *
-     * Parse the selected line field by field.  Fields are separated
-     * by a colon.
-     * 1. user id (int)
-     * 2. user name (string)
-     * 3. encrypted user password (string; first two characters are salt)
-     * 4. list of contacts (integers separated by commas)
-     *
-    int userID;
-    std::string username;
-    std::string name;
-    std::string password;
-    std::string contacts;
-    getline(ss, field, ':');
-    userID = atoi(field.c_str());
-    getline(ss, username, ':');
-    getline(ss, name, ':');
-    getline(ss, password, ':');
-    getline(ss, contacts, ':');
-    User* pUser = new User(userID, username, name, password, offline);
-    users.push_back(pUser);
+  // Wait for the server response delivered through the message queue.
+  bool responseReceived = false;
+  while (!responseReceived) {
+    /* DBG: Same code as in the distributor process.  It should be feasible to replace it
+     * with a function as both processes are derived from the base Process class, which
+     * could contain this function! */
+    /* DBG: This has to be replaced with something more efficient; perhaps some kind of
+     * an events-based function or a hook, if such a thing exists for queues! */
+    if (pMessageQueue->size() == 0)
+      continue;
+
+    Message& message = pMessageQueue->front();
+
+    /* Decode the message. */
+    MessageType messageType = message.getType();
+    pid_t messageSender = message.getSender();
+    pid_t messageRecipient = message.getRecipient();
+    char* msg = new char [message.getLength() + 1];
+    message.read(msg);
+    // Remove the message from the queue if the recepient matches the process ID.
+    if (messageRecipient == pid) {
+      responseReceived = true;
+      // Release the memory allocated for the message contents;
+      message.releaseContents();
+      // Remove from the queue.
+      pMessageQueue->pop_front();
+
+      if ((messageType != mUsernameStatus) || (messageSender != distributorPid))
+	/* DBG: Throw an exception if the message type is not the username status response
+	 * from the distributor process! */
+	std::cout << "Wrong message received!" << std::endl;
+
+      /*
+       * The number sent back to the user should indicate the response of
+       * the server:
+       * 0: the username and the password have been accepted
+       * 1: the username has already been taken
+       * for later implementation
+       * 2: the password is too short
+       * 3: the password does not have the right combination of
+       *    letters (at least one uppercase and one lowercase,
+       *    at least one number, and at least one other character)
+       */
+      if (std::string(msg) == "OK")
+	rCommunicationSocket.send(0);
+      else
+	rCommunicationSocket.send(1);
+    }
   }
-  */
 }
 
 int ClientDedicatedProcess::loginUser() {

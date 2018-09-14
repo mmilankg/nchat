@@ -12,7 +12,7 @@ class Process {
   Process() { pid = ::getpid(); }
   virtual ~Process() { }
   virtual int run() = 0;
-  virtual pid_t getpid() const { return pid; }
+  pid_t getpid() const { return pid; }
 };
 
 #endif	// PROCESS_H

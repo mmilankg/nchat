@@ -6,7 +6,7 @@ local_objs	:= $(subst .cpp,.o, $(local_src))
 programs	+= $(local_prog)
 sources		+= $(local_src)
 
-LDFLAGS		:= -lrt -lpthread
+LDFLAGS_SRV	:= -lrt -lpthread -lcrypt
 
 $(local_prog): $(common_objs) $(local_objs)
-	$(CXX) -o $@ $(LDFLAGS) $^
+	$(CXX) -o $@ $(LDFLAGS_SRV) $^

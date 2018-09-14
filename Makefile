@@ -39,6 +39,6 @@ endif
 	$(CXX) -o $@ -c $(CPPFLAGS) $(CXXFLAGS) $(WFLAGS) $<
 
 %.d: %.cpp
-	$(CC) $(CFLAGS) $(CPPFLAGS) -M $< | \
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -M $< | \
 	  $(SED) 's,\($(notdir $*)\.o\) *:,$(dir $@)\1 $@: ,' > $@.tmp
 	$(MV) $@.tmp $@
