@@ -8,3 +8,9 @@ test
 # Exclude executables.
 ncServer
 ncClient
+# Exclude backup files (at least for Dia).
+*~
+# Exclude the usersFile for the time being.
+nchatUsers
+# Exclude the gdb history file.
+.gdb_history

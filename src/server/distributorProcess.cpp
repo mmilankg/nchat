@@ -1,9 +1,14 @@
 #include "distributorProcess.h"
-#include <random>
+#include <chrono>
 
-DistributorProcess::DistributorProcess() : usersFileName("nchatUsers") {
+DistributorProcess::DistributorProcess() :
+  usersFileName("nchatUsers"),
+  // Initialize the salt generator using the current time.
+  saltGenerator(std::chrono::system_clock::now().time_since_epoch().count()),
+  // Initialize the random distribution object.
+  saltDistribution(std::uniform_int_distribution<>(0, 63))
+{
   // Delete shared memory segments with the same names if they already exist.
-  //boost::interprocess::shared_memory_object::remove("charMemory");
   boost::interprocess::shared_memory_object::remove("userVectorMemory");
   boost::interprocess::shared_memory_object::remove("messageQueueMemory");
   /*
@@ -12,13 +17,6 @@ DistributorProcess::DistributorProcess() : usersFileName("nchatUsers") {
    * to define their sizes through constants (perhaps as enum members
    * of the class).
    */
-  /*
-  pCharSegment = new boost::interprocess::managed_shared_memory(
-      boost::interprocess::create_only,
-      "charMemory",
-      65536
-      );
-      */
   pUserSegment = new boost::interprocess::managed_shared_memory(
       boost::interprocess::create_only,
       "userVectorMemory",
@@ -35,23 +33,27 @@ DistributorProcess::DistributorProcess() : usersFileName("nchatUsers") {
   // Construct the user vector and the message queue.
   pUserVector = pUserSegment->construct<UserVector>("userVector")(*pUserAllocator);
   pMessageQueue = pMessageSegment->construct<MessageQueue>("messageQueue")(*pMessageAllocator);
+
+  // Open the file for reading and writing in the append mode.
+  usersFile.open(usersFileName.c_str(), std::ios::in | std::ios::out | std::ios::app);
 }
 
 int DistributorProcess::run() {
   /* Open the file with user data and read it. */
-  std::ifstream userFile(usersFileName.c_str());
-  std::string line;
+  //DBG! std::ifstream usersFile(usersFileName.c_str());
   // Parse the user file line by line.
-  while (getline(userFile, line)) {
+  std::string line;
+  while (getline(usersFile, line)) {
     std::istringstream ss(line);
     std::string field;
     /*
      * Parse the selected line field by field.  Fields are separated
      * by a colon.
      * 1. user id (int)
-     * 2. user name (string)
-     * 3. encrypted user password (string; first two characters are salt)
-     * 4. list of contacts (integers separated by commas)
+     * 2. name (string)
+     * 3. username (string)
+     * 4. encrypted user password (string; first two characters are salt)
+     * 5. list of contacts (integers separated by commas)
      */
     int userID;
     std::string username;
@@ -66,6 +68,13 @@ int DistributorProcess::run() {
     getline(ss, contacts, ':');
     pUserVector->push_back(User(userID, username, name, password, offline));
   }
+  /*
+   * Clear the error state flag after reading in order to be able to write to
+   * the file in other functions:
+   *
+   * https://stackoverflow.com/questions/32435991/how-to-read-and-write-in-file-with-fstream-simultaneously-in-c/32437476#32437476
+   */
+  usersFile.clear();
 
   /* DBG: open the memory segment for message queue allocation in order to read
    * message contents.  (Should be centralized so that it's done only once.) */
@@ -138,7 +147,7 @@ void DistributorProcess::checkUsername(int clientProcessID, const std::string& u
  * 3. plain text user password
  * These fields will be separated by a null-byte for easy extraction.
  */
-void DistributorProcess::addUser(const char* userData) const {
+void DistributorProcess::addUser(const char* userData) {
   /*
    * Extract the full name of the user, up to the first null-byte.  The string constructor
    * should automatically recognize the end of the name-sequence by finding the null-byte.
@@ -148,40 +157,25 @@ void DistributorProcess::addUser(const char* userData) const {
   std::string username(userData + name.length() + 1);
   /* DBG: start extraction from the first character after the second null-byte! */
   std::string password(userData + name.length() + username.length() + 2);
-  /* DBG! */
-  std::cout << name << " " << username << " " << password << std::endl;
   /*
-   * The password is still in plain text.  It should be encrypted and salted before storing.
+   * The password is still in plain text.  It should be encrypted and prepended with salt
+   * before storing.
    *
    * DBG: Note: it seems to be a bad idea to send passwords unencrypted, so a suggested
    * improvement to this approach seems to be to send some key that a client can use to
    * encrypt the password before sending it to the server.  This would require changing
    * this part of the function.
    */
-  /*
-  char saltCandidates[64];
-  for (int i = 0; i < 26; i++) {
-    saltCandidates[i] = 'a' + i;
-    saltCandidates[26 + i] = 'A' + i;
-  }
-  for (int i = 0; i < 10; i++)
-    saltCandidates[52 + i] = '0' + i;
-  saltCandidates[62] = '.';
-  saltCandidates[63] = '/';
-  // ... but perhaps cleaner to just define as a constant
-  */
   const char* saltCandidates = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./";
   char salt[2];
-  /* DBG: perhaps better to have this as a class member and initialize in the constructor or
-   * at the start of the run function in order to avoid reinitialization! */
-  std::default_random_engine generator;
-  std::uniform_int_distribution<int> distribution(0, 63);
   // Create salt from the first two randomly chosen characters from the set.
-  salt[0] = saltCandidates[distribution(generator)];
-  salt[1] = saltCandidates[distribution(generator)];
+  salt[0] = saltCandidates[saltDistribution(saltGenerator)];
+  salt[1] = saltCandidates[saltDistribution(saltGenerator)];
   char* encryptedPasswordContents = crypt(password.c_str(), salt);
   std::string encryptedPassword(encryptedPasswordContents);
-  int userID = pUserVector->back().getUserID() + 1;
+  int userID = 0;
+  if (pUserVector->size() > 0)
+    userID = pUserVector->back().getUserID() + 1;
   pUserVector->push_back(User(userID, username, name, encryptedPassword, online));
 
   /*
@@ -191,33 +185,15 @@ void DistributorProcess::addUser(const char* userData) const {
    * operation is ongoing.  This is left for later implementation.
    */
   /*
-  std::ifstream userFile(rUsersFileName.c_str());
-  std::string line;
-  // Parse the user file line by line.
-  while (getline(userFile, line)) {
-    std::istringstream ss(line);
-    std::string field;
-    *
-     * Parse the selected line field by field.  Fields are separated
-     * by a colon.
-     * 1. user id (int)
-     * 2. user name (string)
-     * 3. encrypted user password (string; first two characters are salt)
-     * 4. list of contacts (integers separated by commas)
-     *
-    int userID;
-    std::string username;
-    std::string name;
-    std::string password;
-    std::string contacts;
-    getline(ss, field, ':');
-    userID = atoi(field.c_str());
-    getline(ss, username, ':');
-    getline(ss, name, ':');
-    getline(ss, password, ':');
-    getline(ss, contacts, ':');
-    User* pUser = new User(userID, username, name, password, offline);
-    users.push_back(pUser);
-  }
-  */
+   * Pack user information into a single line with the following format:
+   * userID:name:username:encryptedPassword:
+   * These are separated by colons.  The last colon is the end of the line
+   * for a new user.  For an existing user, it will be followed by the list
+   * of contacts: comma-separated userIDs.
+   */
+  std::string line = std::to_string(userID) + ":";
+  line += username + ":";
+  line += name + ":";
+  line += encryptedPassword + ":";
+  usersFile << line << std::endl;
 }

@@ -113,6 +113,21 @@ int ClientDedicatedProcess::signupUser() {
 	rCommunicationSocket.send(0);
       else
 	rCommunicationSocket.send(1);
+
+      /*
+       * Inform the distributor process about the user.  Pack the name, username
+       * and the password into the message and put it into the message queue.
+       */
+      // Add 3 for null-characters after each component.
+      int messageLength = name.length() + username.length() + password.length() + 3;
+      // Initialize the buffer with null-characters.
+      char* buffer = new char[messageLength]();
+      // Copy message components into the buffer.
+      name.copy(buffer, name.length(), 0);
+      username.copy(buffer + name.length() + 1, username.length(), 0);
+      password.copy(buffer + name.length() + username.length() + 2, password.length(), 0);
+      pMessageQueue->push_back(Message(pid, distributorPid, mAddUser, messageLength, buffer));
+      delete []buffer;
     }
   }
 }
