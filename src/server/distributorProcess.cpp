@@ -109,6 +109,9 @@ int DistributorProcess::run() {
       case mAddUser :
 	addUser(msg);
 	break;
+      case mCheckUser :
+	checkUser(messageSender, msg);
+	break;
       default :		    break;
     }
     delete []msg;
@@ -125,8 +128,8 @@ void DistributorProcess::checkUsername(int clientProcessID, const std::string& u
    */
   boost::interprocess::vector<User, UserAllocator>::iterator userIterator;
   for (userIterator = pUserVector->begin(); userIterator != pUserVector->end(); userIterator++) {
-    std::string registeredUsername = userIterator->getUsername();
-    if (username == registeredUsername)
+    std::string storedUsername = userIterator->getUsername();
+    if (username == storedUsername)
       break;
   }
   /*
@@ -137,6 +140,38 @@ void DistributorProcess::checkUsername(int clientProcessID, const std::string& u
     pMessageQueue->push_back(Message(pid, clientProcessID, mUsernameStatus, 2, "OK"));
   else
     pMessageQueue->push_back(Message(pid, clientProcessID, mUsernameStatus, 3, "NOK"));
+}
+
+void DistributorProcess::checkUser(int clientProcessID, const char* buffer) const {
+  // Unpack the username and password from the message.
+  std::string username(buffer);
+  std::string password(buffer + username.length() + 1);
+  boost::interprocess::vector<User, UserAllocator>::iterator userIterator;
+  for (userIterator = pUserVector->begin(); userIterator != pUserVector->end(); userIterator++) {
+    std::string storedUsername = userIterator->getUsername();
+    // When the user is found:
+    if (username == storedUsername) {
+      // Check the password.  Take the stored password from the database and extract the
+      // first two characters as salt.
+      std::string storedPassword = userIterator->getPassword();
+      char salt[2];
+      std::memcpy(salt, storedPassword.c_str(), 2);
+      char* encryptedPasswordContents = crypt(password.c_str(), salt);
+      std::string encryptedPassword(encryptedPasswordContents);
+      if (encryptedPassword == storedPassword)
+	pMessageQueue->push_back(Message(pid, clientProcessID, mCheckUser, 2, "OK"));
+      else
+	pMessageQueue->push_back(Message(pid, clientProcessID, mCheckUser, 3, "NOK"));
+    }
+  }
+
+  /*
+   * If the loop finishes without finding the user (iterator == vector.end()), the
+   * username that was sent is wrong as no such user has been found in the system.
+   * Return "UNK" message to the client-dedicated process.
+   */
+  if (userIterator == pUserVector->end())
+    pMessageQueue->push_back(Message(pid, clientProcessID, mCheckUser, 3, "UNK"));
 }
 
 /*

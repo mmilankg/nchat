@@ -56,6 +56,7 @@ class DistributorProcess : public Process {
 
   private:
   void checkUsername(int clientProcessID, const std::string& username) const;
+  void checkUser(int clientProcessID, const char* buffer) const;
   void addUser(const char* userData);
 };
 

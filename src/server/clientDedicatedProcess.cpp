@@ -180,8 +180,11 @@ int ClientDedicatedProcess::loginUser() {
 	std::cout << "Wrong message received!" << std::endl;
       if (std::string(msg) == "OK")
 	rCommunicationSocket.send(0);
-      else
+      else if (std::string(msg) == "NOK")
 	rCommunicationSocket.send(1);
+      else
+	// Message sent for the unknown user; when the username was not found in the database.
+	rCommunicationSocket.send(2);
       delete []msg;
     }
   }
