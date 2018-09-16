@@ -83,7 +83,7 @@ int ClientDedicatedProcess::signupUser() {
     MessageType messageType = message.getType();
     pid_t messageSender = message.getSender();
     pid_t messageRecipient = message.getRecipient();
-    char* msg = new char [message.getLength() + 1];
+    char* msg = new char[message.getLength() + 1];
     message.read(msg);
     // Remove the message from the queue if the recepient matches the process ID.
     if (messageRecipient == pid) {
@@ -133,6 +133,58 @@ int ClientDedicatedProcess::signupUser() {
 }
 
 int ClientDedicatedProcess::loginUser() {
+  /*
+   * The server now needs only the username and password.  As in the signupUser() function,
+   * the password is still received in plaintext, which is then passed to the distributor
+   * process for checking against its database.
+   */
+  std::string username, password;
+  rCommunicationSocket.recv(username);
+  // Insert sending to achieve synchronization with the client.
+  rCommunicationSocket.send(0);
+  rCommunicationSocket.recv(password);
+  rCommunicationSocket.send(0);
+  // Pack the username and the password into the message before sending to the queue.
+  /* DBG: This is done at least twice, so it could be replaced by a function that would
+   * receive a set of strings (e.g. a vector) as an input, and return a memory address
+   * of a buffer.  This function could be a private function of the Process class as
+   * all of these processes will use it.  Another possibility is to make it as a general
+   * function so that messages for socket transfer can be prepared this way from the
+   * client-side. */
+  int messageLength = username.length() + password.length() + 2;
+  char* buffer = new char[messageLength]();
+  username.copy(buffer, username.length(), 0);
+  password.copy(buffer + username.length() + 1, password.length(), 0);
+  // Send to the distributor process for check.
+  pMessageQueue->push_back(Message(pid, distributorPid, mCheckUser, messageLength, buffer));
+  delete []buffer;
+
+  // Wait for the distributor process response (OK or NOK).
+  bool responseReceived = false;
+  while (!responseReceived) {
+    if (pMessageQueue->size() == 0)
+      continue;
+
+    Message& message = pMessageQueue->front();
+    pid_t messageRecipient = message.getRecipient();
+    if (messageRecipient == pid) {
+      responseReceived = true;
+      MessageType messageType = message.getType();
+      pid_t messageSender = message.getSender();
+      char* msg = new char[message.getLength() + 1];
+      message.read(msg);
+      message.releaseContents();
+      pMessageQueue->pop_front();
+
+      if ((messageType != mCheckUser) || (messageSender != distributorPid))
+	std::cout << "Wrong message received!" << std::endl;
+      if (std::string(msg) == "OK")
+	rCommunicationSocket.send(0);
+      else
+	rCommunicationSocket.send(1);
+      delete []msg;
+    }
+  }
 }
 
 int ClientDedicatedProcess::logoutUser() {
