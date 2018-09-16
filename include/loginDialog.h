@@ -16,19 +16,15 @@ class LoginDialog : public Dialog {
 // class for defining the action associated with the login button
 class LoginItem : public NCursesMenuItem {
   LoginDialog* pParentPanel;
+  const Socket* pSocket;
   public:
-  LoginItem(LoginDialog* pPanel) : NCursesMenuItem("Log in    ") {
-    pParentPanel = pPanel;
-  }
+  LoginItem(LoginDialog* pPanel, const Socket* pSock) :
+    NCursesMenuItem("Log in    "),
+    pParentPanel(pPanel),
+    pSocket(pSock)
+  { }
 
-  bool action() {
-    const NCursesFormField* pUsernameFormField = pParentPanel->getField(0);
-    const NCursesFormField* pPasswordFormField = pParentPanel->getField(1);
-    char* username = pUsernameFormField->value();
-    char* password = pPasswordFormField->value();
-    int a = 0;
-    return false;
-  }
+  bool action();
 };
 
 // class for the signup button action

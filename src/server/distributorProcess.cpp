@@ -39,8 +39,6 @@ DistributorProcess::DistributorProcess() :
 }
 
 int DistributorProcess::run() {
-  /* Open the file with user data and read it. */
-  //DBG! std::ifstream usersFile(usersFileName.c_str());
   // Parse the user file line by line.
   std::string line;
   while (getline(usersFile, line)) {
@@ -55,6 +53,7 @@ int DistributorProcess::run() {
      * 4. encrypted user password (string; first two characters are salt)
      * 5. list of contacts (integers separated by commas)
      */
+    pid_t processID = 0;
     int userID;
     std::string username;
     std::string name;
@@ -66,7 +65,7 @@ int DistributorProcess::run() {
     getline(ss, name, ':');
     getline(ss, password, ':');
     getline(ss, contacts, ':');
-    pUserVector->push_back(User(userID, username, name, password, offline));
+    pUserVector->push_back(User(processID, userID, username, name, password, offline, contacts));
   }
   /*
    * Clear the error state flag after reading in order to be able to write to
@@ -107,19 +106,21 @@ int DistributorProcess::run() {
 	checkUsername(messageSender, msg);
 	break;
       case mAddUser :
-	addUser(msg);
+	addUser(messageSender, msg);
 	break;
       case mCheckUser :
 	checkUser(messageSender, msg);
 	break;
-      default :		    break;
+      case mLogoutUser :
+	logoutUser(messageSender);
+	break;
     }
     delete []msg;
   }
   return 0;
 }
 
-void DistributorProcess::checkUsername(int clientProcessID, const std::string& username) const {
+void DistributorProcess::checkUsername(pid_t clientProcessID, const std::string& username) const {
   /*
    * Iterate through the vector of users and check if a user with the same name already exists.
    * If the username is not taken, return a message to the client-dedicated process indicating
@@ -142,7 +143,7 @@ void DistributorProcess::checkUsername(int clientProcessID, const std::string& u
     pMessageQueue->push_back(Message(pid, clientProcessID, mUsernameStatus, 3, "NOK"));
 }
 
-void DistributorProcess::checkUser(int clientProcessID, const char* buffer) const {
+void DistributorProcess::checkUser(pid_t clientProcessID, const char* buffer) const {
   // Unpack the username and password from the message.
   std::string username(buffer);
   std::string password(buffer + username.length() + 1);
@@ -158,10 +159,15 @@ void DistributorProcess::checkUser(int clientProcessID, const char* buffer) cons
       std::memcpy(salt, storedPassword.c_str(), 2);
       char* encryptedPasswordContents = crypt(password.c_str(), salt);
       std::string encryptedPassword(encryptedPasswordContents);
-      if (encryptedPassword == storedPassword)
+      if (encryptedPassword == storedPassword) {
 	pMessageQueue->push_back(Message(pid, clientProcessID, mCheckUser, 2, "OK"));
+	// Mark the user's status in the list of all users as online.
+	userIterator->setStatus(online);
+      }
       else
 	pMessageQueue->push_back(Message(pid, clientProcessID, mCheckUser, 3, "NOK"));
+      // Break iterations if the user has been found.
+      break;
     }
   }
 
@@ -182,7 +188,7 @@ void DistributorProcess::checkUser(int clientProcessID, const char* buffer) cons
  * 3. plain text user password
  * These fields will be separated by a null-byte for easy extraction.
  */
-void DistributorProcess::addUser(const char* userData) {
+void DistributorProcess::addUser(pid_t clientProcessID, const char* userData) {
   /*
    * Extract the full name of the user, up to the first null-byte.  The string constructor
    * should automatically recognize the end of the name-sequence by finding the null-byte.
@@ -211,7 +217,8 @@ void DistributorProcess::addUser(const char* userData) {
   int userID = 0;
   if (pUserVector->size() > 0)
     userID = pUserVector->back().getUserID() + 1;
-  pUserVector->push_back(User(userID, username, name, encryptedPassword, online));
+  // empty string for contacts as the last argument
+  pUserVector->push_back(User(clientProcessID, userID, username, name, encryptedPassword, online, ""));
 
   /*
    * Add the user to the file listing all users and their contacts.
@@ -231,4 +238,39 @@ void DistributorProcess::addUser(const char* userData) {
   line += name + ":";
   line += encryptedPassword + ":";
   usersFile << line << std::endl;
+}
+
+void DistributorProcess::logoutUser(pid_t clientProcessID) {
+  /*
+   * Set the process ID for this user's client-dedicated process as 0, set the user status as offline,
+   * and inform contacts to update their status flags for the user.
+   */
+  boost::interprocess::vector<User, UserAllocator>::iterator userIterator;
+  for (userIterator = pUserVector->begin(); userIterator != pUserVector->end(); userIterator++) {
+    pid_t iteratedUsersProcessID = userIterator->getProcessID();
+    if (clientProcessID == iteratedUsersProcessID) {
+      // The user has been found, so update the corresponding fields in the entry.
+      userIterator->setProcessID(0);
+      userIterator->setStatus(offline);
+      // Iterate through the list of contacts and inform other users that this one has logged out.
+      const std::vector<int>& rContactIDs = userIterator->getContactIDs();
+      std::vector<int>::const_iterator contactsIterator;
+      for (contactsIterator = rContactIDs.begin(); contactsIterator != rContactIDs.end(); contactsIterator++) {
+	/* DBG: This is going to be extremely inefficient as it involves double loop!  There should be a better
+	 * way to store user objects so that the process ID is retrieved automatically with user ID. */
+	boost::interprocess::vector<User, UserAllocator>::iterator innerUserIterator;
+	for (innerUserIterator = pUserVector->begin(); innerUserIterator != pUserVector->end(); innerUserIterator++) {
+	  int contactID = innerUserIterator->getUserID();
+	  if (contactID == *contactsIterator) {
+	    /* If the contact has been found, send it a message about the user being logged out. */
+	    // Get the process ID.
+	    pid_t contactProcessID = innerUserIterator->getProcessID();
+	    pMessageQueue->push_back(Message(pid, contactProcessID, mLogoutUser, 0, ""));
+	    break;
+	  }
+	}
+      }
+      break;
+    }
+  }
 }

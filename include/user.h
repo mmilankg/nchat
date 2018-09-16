@@ -13,6 +13,7 @@ enum Status {
 
 // user properties found in the file listing all users
 class User {
+  pid_t processID;		  // process ID for the process at which the user is connected
   int userID;
   std::string username;
   std::string name;
@@ -20,12 +21,24 @@ class User {
   Status status;
   std::vector<int> contactIDs;
   public:
-  User() : userID(0), status(offline) { }
-  User(int uid, const std::string& uname, const std::string& nm, const std::string& pwd, Status st) :
-    userID(uid), username(uname), name(nm), encryptedPassword(pwd), status(st)
+  User() : processID(0), userID(0), status(offline) { }
+  User(pid_t pid, int uid, const std::string& uname, const std::string& nm, const std::string& pwd, Status st, const std::string& contacts) :
+    processID(pid), userID(uid), username(uname), name(nm), encryptedPassword(pwd), status(st)
+  {
+    std::istringstream contactStream(contacts);
+    std::string field;
+    while (getline(contactStream, field, ','));
+    int contactID = atoi(field.c_str());
+    contactIDs.push_back(contactID);
+  }
+  User(const User& u) :
+    processID(u.processID), userID(u.userID),
+    username(u.username), encryptedPassword(u.encryptedPassword),
+    status(u.status), contactIDs(u.contactIDs)
   { }
-  User(const User& u) : userID(u.userID), username(u.username), encryptedPassword(u.encryptedPassword), status(u.status) { }
   virtual ~User() { }
+  virtual int getProcessID() const { return processID; }
+  virtual void setProcessID(int pid) { processID = pid; }
   virtual int getUserID() const { return userID; }
   virtual void setUserID(int uid) { userID = uid; }
   virtual const std::string& getUsername() const { return username; }
@@ -36,22 +49,8 @@ class User {
   virtual void setPassword(const std::string& pwd) { encryptedPassword = pwd; }
   virtual Status getStatus() const { return status; }
   virtual void setStatus(Status st) { status = st; }
-};
-
-class Contact : public User {
-  /*
-   * ID for the client dedicated process if
-   * the user is logged in; 0 if not logged in.
-   */
-  int processID;
-  public:
-  Contact() : processID(0) { }
-  Contact(const Contact& c) : User(c), processID(c.processID) { }
-  ~Contact() { }
-  // sending a text message to the user
-  void text(const std::string& msg) { /* implement later */ }
-  // call the user
-  void call() { /* implement later */ }
+  virtual const std::vector<int>& getContactIDs() const { return contactIDs; }
+  virtual void setContactIDs(const std::vector<int>& cids) { contactIDs = cids; }
 };
 
 #endif	// USER_H

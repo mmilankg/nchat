@@ -25,11 +25,19 @@ int ClientDedicatedProcess::run() {
     // Acknowledge receipt of the command.
     rCommunicationSocket.send(0);
     switch (command) {
-      case cSignup : signupUser(); break;
-      case cLogin : loginUser(); break;
-      case cLogout : logoutUser(); break;
-      case cQuit : quit(); break;
-      default : ;
+      case cSignup :
+	signupUser();
+	break;
+      case cLogin :
+	loginUser();
+	break;
+      case cLogout :
+	logoutUser();
+	break;
+      case cQuit :
+	logoutUser();
+	quit();
+	break;
     }
   }
 }
@@ -143,7 +151,6 @@ int ClientDedicatedProcess::loginUser() {
   // Insert sending to achieve synchronization with the client.
   rCommunicationSocket.send(0);
   rCommunicationSocket.recv(password);
-  rCommunicationSocket.send(0);
   // Pack the username and the password into the message before sending to the queue.
   /* DBG: This is done at least twice, so it could be replaced by a function that would
    * receive a set of strings (e.g. a vector) as an input, and return a memory address
@@ -191,6 +198,8 @@ int ClientDedicatedProcess::loginUser() {
 }
 
 int ClientDedicatedProcess::logoutUser() {
+  // Inform the distributor process that the client is logging out.
+  pMessageQueue->push_back(Message(pid, distributorPid, mLogoutUser, 0, ""));
 }
 
 int ClientDedicatedProcess::findUser() {

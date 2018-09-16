@@ -55,9 +55,10 @@ class DistributorProcess : public Process {
   int run();
 
   private:
-  void checkUsername(int clientProcessID, const std::string& username) const;
-  void checkUser(int clientProcessID, const char* buffer) const;
-  void addUser(const char* userData);
+  void checkUsername(pid_t clientProcessID, const std::string& username) const;
+  void checkUser(pid_t clientProcessID, const char* buffer) const;
+  void logoutUser(pid_t clientProcessID);
+  void addUser(pid_t clientProcessID, const char* userData);
 };
 
 #endif	// DISTRIBUTORPROCESS_H

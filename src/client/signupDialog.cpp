@@ -73,6 +73,7 @@ bool SignupOKItem::action() {
   pSocket->recv(serverResponse);
 
   if (serverResponse == 0) {
+    // Start the main working window after the user has signed up.
   }
   return false;
 }
