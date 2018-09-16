@@ -3,3 +3,18 @@ executing ./src/client/ncClient from the terminal.
 
 The Makefile and files it includes are all very primitive.  I would like to set up a system that uses autotools, but I
 don't know how to use them yet.
+
+Some documentation can be found in the docs directory.  The latest addition is the Dia-based schematic in
+docs/designElements/nchat.dia.  It includes only the elements implemented so far.  And it's likely going to be subjected
+to significant changes.  In particular, it may turn out to be too complicated to keep a vector of all users in shared
+memory, in which case shared memory will be reserved for exchange of messages between server processes, while the vector
+of users will be kept on the distributor process that will communicate with client-dedicated processes and exchange user
+information with them when needed.
+
+I didn't look up UML conventions yet, so I may be making mistakes in how I represent some of the dependencies.  I show
+the inheritance as an arrow that leads from an inherited class to the base class.  But for composition, I used a line
+that ends with a diamond (this is also when a class contains a pointer or a reference to an object of another class).
+
+I'm not sure if the diagram looks too crowded now.  Perhaps I should simplify it by focusing on these three types of
+processes on the server side, their inter-process communication through shared memory, and the communication between one
+of them and the client through internet sockets.
