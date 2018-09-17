@@ -1,0 +1,7 @@
+- Remove User vector from shared memory.
+
+- Extract message reading into a protected(?) function of the process class.
+
+- Introduce mutexes for message removal from the queue and user logging out.
+
+- Remove defunct processes after users log out.
