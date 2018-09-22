@@ -86,36 +86,36 @@ int DistributorProcess::run() {
 
     Message& message = pMessageQueue->front();
 
-    /* Decode the message. */
-    MessageType messageType = message.getType();
-    pid_t messageSender = message.getSender();
     pid_t messageRecipient = message.getRecipient();
-    char* msg = new char[message.getLength() + 1];
-    message.read(msg);
     // Remove the message from the queue if the recepient matches the process ID.
     if (messageRecipient == pid) {
+      /* Decode the message. */
+      MessageType messageType = message.getType();
+      pid_t messageSender = message.getSender();
+      char* msg = new char[message.getLength() + 1];
+      message.read(msg);
       // Release the memory allocated for the message contents;
       message.releaseContents();
       // Remove from the queue.
       pMessageQueue->pop_front();
-    }
 
-    // Process the message.
-    switch (messageType) {
-      case mCheckUsername :
-	checkUsername(messageSender, msg);
-	break;
-      case mAddUser :
-	addUser(messageSender, msg);
-	break;
-      case mCheckUser :
-	checkUser(messageSender, msg);
-	break;
-      case mLogoutUser :
-	logoutUser(messageSender);
-	break;
+      // Process the message.
+      switch (messageType) {
+	case mCheckUsername :
+	  checkUsername(messageSender, msg);
+	  break;
+	case mAddUser :
+	  addUser(messageSender, msg);
+	  break;
+	case mCheckUser :
+	  checkUser(messageSender, msg);
+	  break;
+	case mLogoutUser :
+	  logoutUser(messageSender);
+	  break;
+      }
+      delete []msg;
     }
-    delete []msg;
   }
   return 0;
 }
