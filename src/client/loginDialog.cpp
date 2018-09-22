@@ -1,4 +1,5 @@
 #include "loginDialog.h"
+#include "ncWindow.h"
 
 LoginDialog::LoginDialog(const Socket* pSock, int h, int w, int y, int x) :
   pSocket(pSock),
@@ -66,9 +67,8 @@ bool LoginItem::action() {
 
   if (serverResponse == 0) {
     // Start the main working window if the user is logged in.
-    /* DBG: start the signupDialog just for testing! */
-    SignupDialog signupDialog(pSocket);
-    signupDialog.run();
+    NCWindow ncWindow(pSocket);
+    ncWindow.run();
   }
 
   return false;
