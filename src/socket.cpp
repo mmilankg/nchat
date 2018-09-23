@@ -29,8 +29,6 @@ Socket::Socket(const std::string& hostName, int port, int bs) : bufSize(bs) {
   const char* pHostName = hostName.c_str();
   if (hostName == "")
     pHostName = NULL;
-    /* DBG: temporary solution for aidan! */
-    //pHostName = "aidan.ncl.ac.uk";
   std::string sPort = std::to_string(port);
   /* DBG: try-catch! */
   getaddrinfo(pHostName, sPort.c_str(), &hints, &pResult);
