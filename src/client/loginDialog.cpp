@@ -57,6 +57,7 @@ bool LoginItem::action() {
   password = password.substr(0, password.find_last_not_of(" ") + 1);
 
   // Send the username and password to the server (similar to SignupOKItem::action()).
+  /* DBG
   int serverResponse;
   pSocket->send(cLogin);
   pSocket->recv(serverResponse);
@@ -64,12 +65,23 @@ bool LoginItem::action() {
   pSocket->recv(serverResponse);
   pSocket->send(password);
   pSocket->recv(serverResponse);
+  */
+  /* DBG! */
+  Commands command = cLogin;
+  int messageLength = sizeof(Commands) + username.length() + password.length() + 2;
+  char* message = new char[messageLength]();
+  std::memcpy(message, &command, sizeof(Commands));
+  std::memcpy(message + sizeof(Commands), username.c_str(), username.length());
+  std::memcpy(message + sizeof(Commands) + username.length() + 1, password.c_str(), password.length());
+  pSocket->send(message);
 
+  /*
   if (serverResponse == 0) {
     // Start the main working window if the user is logged in.
     NCWindow ncWindow(pSocket);
     ncWindow.run();
   }
+  */
 
   return false;
 }

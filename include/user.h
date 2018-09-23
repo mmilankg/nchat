@@ -1,6 +1,7 @@
 #ifndef USER_H
 #define USER_H
 
+#include "socket.h"
 #include <sstream>
 #include <string>
 #include <vector>
@@ -14,18 +15,19 @@ enum Status {
 
 // user properties found in the file listing all users
 class User {
-  pid_t processID;		  // process ID for the process at which the user is connected
   int userID;
   std::string username;
   std::string name;
   std::string encryptedPassword;
+  // address of the Socket object through which the user is connected
+  const Socket* clientSocket;
   Status status;
   std::vector<int> contactIDs;
 
   public:
-  User() : processID(0), userID(0), status(offline) { }
-  User(pid_t pid, int uid, const std::string& uname, const std::string& nm, const std::string& pwd, Status st, const std::string& contacts) :
-    processID(pid), userID(uid), username(uname), name(nm), encryptedPassword(pwd), status(st)
+  User() : userID(0), clientSocket(0), status(offline) { }
+  User(int uid, const std::string& uname, const std::string& nm, const std::string& pwd, const Socket* pSocket, Status st, const std::string& contacts) :
+    userID(uid), username(uname), name(nm), encryptedPassword(pwd), clientSocket(pSocket), status(st)
   {
     std::istringstream contactStream(contacts);
     std::string field;
@@ -34,14 +36,11 @@ class User {
     contactIDs.push_back(contactID);
   }
   User(const User& u) :
-    processID(u.processID), userID(u.userID),
-    username(u.username), encryptedPassword(u.encryptedPassword),
-    status(u.status), contactIDs(u.contactIDs)
+    userID(u.userID), username(u.username), encryptedPassword(u.encryptedPassword),
+    clientSocket(u.clientSocket), status(u.status), contactIDs(u.contactIDs)
   { }
   virtual ~User() { }
 
-  int getProcessID() const { return processID; }
-  void setProcessID(int pid) { processID = pid; }
   int getUserID() const { return userID; }
   void setUserID(int uid) { userID = uid; }
   const std::string& getUsername() const { return username; }
@@ -50,6 +49,8 @@ class User {
   void setName(const std::string& nm) { name = nm; }
   const std::string& getPassword() const { return encryptedPassword; }
   void setPassword(const std::string& pwd) { encryptedPassword = pwd; }
+  const Socket* getClientSocket() const { return clientSocket; }
+  void setClientSocket(Socket* pSocket) { clientSocket = pSocket; }
   Status getStatus() const { return status; }
   void setStatus(Status st) { status = st; }
   const std::vector<int>& getContactIDs() const { return contactIDs; }
