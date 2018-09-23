@@ -10,8 +10,8 @@
 #include <boost/interprocess/containers/vector.hpp>
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <fstream>
-#include <list>
 #include <string>
+#include <vector>
 
 class ClientDedicatedProcess : public Process {
   pid_t distributorPid;	  // process ID of the distributor process for communicating among client-oriented processes
@@ -23,9 +23,9 @@ class ClientDedicatedProcess : public Process {
   UserVector* pUserVector;
   MessageQueue* pMessageQueue;
 
-  /* to be implemented:
-  std::list<Contact*> contacts;	// list of all contacts for the user connected at the client end
-  */
+  //std::vector<Contact*> contacts; // list of all contacts for the user connected at the client end
+  /* Pass the contact from the distributor process to the client. */
+  void forwardContact();
 
   public:
   ClientDedicatedProcess(pid_t distributor, const Socket& socket);

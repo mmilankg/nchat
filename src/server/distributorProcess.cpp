@@ -163,6 +163,24 @@ void DistributorProcess::checkUser(pid_t clientProcessID, const char* buffer) co
 	pMessageQueue->push_back(Message(pid, clientProcessID, mCheckUser, 2, "OK"));
 	// Mark the user's status in the list of all users as online.
 	userIterator->setStatus(online);
+	// Send the list of contacts to the user.
+	const std::vector<int>& contacts = userIterator->getContactIDs();
+	std::vector<int>::const_iterator cit;
+	for (cit = contacts.begin(); cit != contacts.end(); cit++) {
+	  int contactID = *cit;
+	  const std::string& contactUsername = (*pUserVector)[contactID].getUsername();
+	  const std::string& contactName = (*pUserVector)[contactID].getName();
+	  Status contactStatus = (*pUserVector)[contactID].getStatus();
+	  // Allocate buffer for sending the message to the client-dedicated process.
+	  int messageLength = sizeof(int) + contactUsername.length() + 1 + contactName.length() + 1 + sizeof(Status);
+	  char* buffer = new char[messageLength]();
+	  std::memcpy(buffer, &contactID, sizeof(int));
+	  std::memcpy(buffer + sizeof(int), contactUsername.c_str(), contactUsername.length());
+	  std::memcpy(buffer + sizeof(int) + contactUsername.length() + 1, contactName.c_str(), contactName.length());
+	  std::memcpy(buffer + sizeof(int) + contactUsername.length() + 1 + contactName.length() + 1, &contactStatus, sizeof(Status));
+	  pMessageQueue->push_back(Message(pid, clientProcessID, mSendContact, messageLength, buffer));
+	  delete []buffer;
+	}
       }
       else
 	pMessageQueue->push_back(Message(pid, clientProcessID, mCheckUser, 3, "NOK"));

@@ -1,6 +1,7 @@
 #ifndef USER_H
 #define USER_H
 
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -20,6 +21,7 @@ class User {
   std::string encryptedPassword;
   Status status;
   std::vector<int> contactIDs;
+
   public:
   User() : processID(0), userID(0), status(offline) { }
   User(pid_t pid, int uid, const std::string& uname, const std::string& nm, const std::string& pwd, Status st, const std::string& contacts) :
@@ -37,20 +39,48 @@ class User {
     status(u.status), contactIDs(u.contactIDs)
   { }
   virtual ~User() { }
-  virtual int getProcessID() const { return processID; }
-  virtual void setProcessID(int pid) { processID = pid; }
-  virtual int getUserID() const { return userID; }
-  virtual void setUserID(int uid) { userID = uid; }
-  virtual const std::string& getUsername() const { return username; }
-  virtual void setUsername(const std::string& uname) { username = uname; }
-  virtual const std::string& getName() const { return name; }
-  virtual void setName(const std::string& nm) { name = nm; }
-  virtual const std::string& getPassword() const { return encryptedPassword; }
-  virtual void setPassword(const std::string& pwd) { encryptedPassword = pwd; }
-  virtual Status getStatus() const { return status; }
-  virtual void setStatus(Status st) { status = st; }
-  virtual const std::vector<int>& getContactIDs() const { return contactIDs; }
-  virtual void setContactIDs(const std::vector<int>& cids) { contactIDs = cids; }
+
+  int getProcessID() const { return processID; }
+  void setProcessID(int pid) { processID = pid; }
+  int getUserID() const { return userID; }
+  void setUserID(int uid) { userID = uid; }
+  const std::string& getUsername() const { return username; }
+  void setUsername(const std::string& uname) { username = uname; }
+  const std::string& getName() const { return name; }
+  void setName(const std::string& nm) { name = nm; }
+  const std::string& getPassword() const { return encryptedPassword; }
+  void setPassword(const std::string& pwd) { encryptedPassword = pwd; }
+  Status getStatus() const { return status; }
+  void setStatus(Status st) { status = st; }
+  const std::vector<int>& getContactIDs() const { return contactIDs; }
+  void setContactIDs(const std::vector<int>& cids) { contactIDs = cids; }
+};
+
+// stripped down class for representing a user as a contact of another user
+/* DBG: This doesn't seem like an optimal solution as it reuses many functions
+ * from the User class.  A better approach would be to have one as a base class
+ * and have the other inherit from it. */
+class Contact {
+  int userID;
+  std::string username;
+  std::string name;
+  Status status;
+
+  public:
+  Contact() : userID(0) { }
+  Contact(const Contact& c) :
+    userID(c.userID), username(c.username), name(c.name), status(c.status)
+  { }
+  virtual ~Contact() { }
+
+  int getUserID() const { return userID; }
+  void setUserID(int uid) { userID = uid; }
+  const std::string& getUsername() const { return username; }
+  void setUsername(const std::string& uname) { username = uname; }
+  const std::string& getName() const { return name; }
+  void setName(const std::string& nm) { name = nm; }
+  Status getStatus() const { return status; }
+  void setStatus(Status st) { status = st; }
 };
 
 #endif	// USER_H

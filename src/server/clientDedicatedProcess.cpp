@@ -34,6 +34,9 @@ int ClientDedicatedProcess::run() {
       case cLogout :
 	logoutUser();
 	break;
+      case mSendContact :
+	forwardContact();
+	break;
       case cQuit :
 	logoutUser();
 	quit();
@@ -209,6 +212,9 @@ int ClientDedicatedProcess::textUser() {
 }
 
 int ClientDedicatedProcess::callUser() {
+}
+
+void ClientDedicatedProcess::forwardContact() {
 }
 
 void ClientDedicatedProcess::quit() {
