@@ -1,12 +1,14 @@
 #ifndef SOCKET_H
 #define SOCKET_H
 
+#include "message.h"
+#include <netdb.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <cstring>
 #include <cstdlib>
 #include <string>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
+#include <vector>
 
 /*
  * The Socket class is used mostly to wrap system calls
@@ -53,9 +55,11 @@ class Socket {
   virtual void send(const char* buf) const;
   virtual void send(const std::string& text) const;
   virtual void send(int num) const;
+  virtual void send(MessageType messageType, const std::vector<std::string>& parts);
   virtual void recv(char* buf) const;
   virtual void recv(std::string& text) const;
   virtual void recv(int& num) const;
+  virtual void recv(MessageType& messageType, std::vector<std::string>& parts);
   virtual Socket& acceptConnection();
   void allocateBuffer() { buffer = new char[bufSize]; }
 };

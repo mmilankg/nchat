@@ -1,3 +1,4 @@
+#include "message.h"
 #include "socket.h"
 #include <unistd.h>
 #include <cstring>
@@ -92,6 +93,39 @@ void Socket::send(int num) const {
   int numBytesWritten = write(sfd, sstream.str().c_str(), sstream.str().length());
 }
 
+// Send a set of strings in one packed message.
+void Socket::send(MessageType messageType, const std::vector<std::string>& parts) {
+  int messageLength = sizeof(messageLength) + sizeof(messageType);
+  std::vector<std::string>::const_iterator partsIterator;
+  for (partsIterator = parts.begin(); partsIterator != parts.end(); partsIterator++)
+    // Add 1 for terminating null-byte for each string.
+    messageLength += partsIterator->length() + 1;
+  // Extend the socket-associated buffer if the message length exceeds
+  // its size.
+  if (messageLength > bufSize) {
+    bufSize = messageLength;
+    delete []buffer;
+    buffer = new char[messageLength]();
+  }
+  /* Pack the buffer in the following order:
+   * 1. messageLength
+   * 2. messageType
+   * 3. string parts, each finishing with null-byte.
+   */
+  char* buf = buffer;
+  std::memcpy(buf, &messageLength, sizeof(messageLength));
+  buf += sizeof(messageLength);
+  std::memcpy(buf, &messageType, sizeof(messageType));
+  buf += sizeof(messageType);
+  for (partsIterator = parts.begin(); partsIterator != parts.end(); partsIterator++) {
+    std::memcpy(buf, partsIterator->c_str(), partsIterator->length());
+    buf += partsIterator->length();
+    std::memset(buf, 0, 1);
+    buf++;
+  }
+  write(sfd, buffer, messageLength);
+}
+
 void Socket::recv(char* buf) const {
   read(sfd, buf, bufSize);
 }
@@ -113,4 +147,31 @@ void Socket::recv(int& num) const {
   read(sfd, buffer, bufSize);
   std::istringstream sstream(buffer);
   sstream >> num;
+}
+
+// Receive a set of strings in one packed message.
+void Socket::recv(MessageType& messageType, std::vector<std::string>& parts) {
+  int messageLength = 0;
+  read(sfd, &messageLength, sizeof(messageLength));
+  read(sfd, &messageType, sizeof(messageType));
+  int remainingLength = messageLength - sizeof(messageLength) - sizeof(messageType);
+  // Extend the socket-associated buffer if the remaining length exceeds
+  // its size.
+  if (remainingLength > bufSize) {
+    bufSize = remainingLength;
+    delete []buffer;
+    buffer = new char[remainingLength]();
+  }
+  read(sfd, buffer, remainingLength);
+  char* buf = buffer;
+  // Process each string terminated with null-byte until the
+  // remainingLength drops to 0.
+  while (remainingLength > 0) {
+    parts.push_back(buf);
+    remainingLength -= parts.back().length();
+    buf += parts.back().length();
+    // Add 1 for null-byte.
+    buf++;
+    remainingLength--;
+  }
 }

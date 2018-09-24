@@ -4,6 +4,8 @@
 
 ServerProcess::ServerProcess() :
   usersFileName("nchatUsers"),
+  // Open the file for reading and writing in the append mode.
+  usersFile(usersFileName.c_str(), std::ios::in | std::ios::out | std::ios::app),
   // passing an empty string sets up the listening socket
   listeningSocket(""),
   // Initialize the salt generator using the current time.
@@ -12,7 +14,7 @@ ServerProcess::ServerProcess() :
   saltDistribution(std::uniform_int_distribution<>(0, 63))
 {
   // Open the file for reading and writing in the append mode.
-  usersFile.open(usersFileName.c_str(), std::ios::in | std::ios::out | std::ios::app);
+  //usersFile.open(usersFileName.c_str(), std::ios::in | std::ios::out | std::ios::app);
   // Parse the user file line by line.
   std::string line;
   while (getline(usersFile, line)) {

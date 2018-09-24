@@ -1,7 +1,1 @@
-- Remove User vector from shared memory.
-
-- Extract message reading into a protected(?) function of the process class.
-
-- Introduce mutexes for message removal from the queue and user logging out.
-
-- Remove defunct processes after users log out; or, better, use the sigaction function to create a handler for child processes that would inform the distributor process if a client-dedicated process stopped
+- Consider replacing select() with poll() for handling higher number of connections.
