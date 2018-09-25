@@ -20,13 +20,13 @@ class User {
   std::string name;
   std::string encryptedPassword;
   // address of the Socket object through which the user is connected
-  const Socket* clientSocket;
+  Socket* clientSocket;
   Status status;
   std::vector<int> contactIDs;
 
   public:
   User() : userID(0), clientSocket(0), status(offline) { }
-  User(int uid, const std::string& uname, const std::string& nm, const std::string& pwd, const Socket* pSocket, Status st, const std::string& contacts) :
+  User(int uid, const std::string& uname, const std::string& nm, const std::string& pwd, Socket* pSocket, Status st, const std::string& contacts) :
     userID(uid), username(uname), name(nm), encryptedPassword(pwd), clientSocket(pSocket), status(st)
   {
     std::istringstream contactStream(contacts);
@@ -49,7 +49,7 @@ class User {
   void setName(const std::string& nm) { name = nm; }
   const std::string& getPassword() const { return encryptedPassword; }
   void setPassword(const std::string& pwd) { encryptedPassword = pwd; }
-  const Socket* getClientSocket() const { return clientSocket; }
+  Socket* getClientSocket() { return clientSocket; }
   void setClientSocket(Socket* pSocket) { clientSocket = pSocket; }
   Status getStatus() const { return status; }
   void setStatus(Status st) { status = st; }

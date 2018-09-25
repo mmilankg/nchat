@@ -94,29 +94,40 @@ int ServerProcess::run() {
 	Socket* clientSocket = *sockIt;
 	int clientSocketFD = clientSocket->getSfd();
 	if (FD_ISSET(clientSocketFD, &socketDescriptors)) {
-	  clientSocket->recv(buffer);
-	  char* buf = buffer;
 	  int messageLength;
 	  MessageType messageType;
-	  std::memcpy(&messageLength, buf, sizeof(messageLength));
-	  buf += sizeof(messageLength);
-	  std::memcpy(&messageType, buf, sizeof(messageType));
-	  buf += sizeof(messageType);
+	  clientSocket->recv(messageLength);
+	  clientSocket->recv(messageType);
+	  clientSocket->recv(buffer);
+	  int contentLength = messageLength - sizeof(messageLength) - sizeof(messageType);
 
 	  // Process the message.
 	  switch (messageType) {
 	    case mCheckUsername :
-	      checkUsername(clientSocket, buf);
-	      break;
+	      {
+		std::string username = buffer;
+		checkUsername(clientSocket, username);
+		break;
+	      }
 	    case mAddUser :
-	      addUser(clientSocket, buf);
-	      break;
+	      {
+		std::vector<std::string> userDetails;
+		bufferToStrings(buffer, contentLength, userDetails);
+		addUser(clientSocket, userDetails);
+		break;
+	      }
 	    case mCheckUser :
-	      checkUser(clientSocket, buf);
-	      break;
+	      {
+		std::vector<std::string> userDetails;
+		bufferToStrings(buffer, contentLength, userDetails);
+		checkUser(clientSocket, userDetails);
+		break;
+	      }
 	    case mLogoutUser :
-	      logoutUser(clientSocket);
-	      break;
+	      {
+		logoutUser(clientSocket);
+		break;
+	      }
 	  }
 	}
       }
@@ -126,7 +137,7 @@ int ServerProcess::run() {
   return 0;
 }
 
-void ServerProcess::checkUsername(const Socket* clientSocket, const std::string& username) const {
+void ServerProcess::checkUsername(Socket* clientSocket, const std::string& username) const {
   // Allocate the buffer for the message to the client.
   int messageLength;
   MessageType messageType = mUsernameStatus;
@@ -165,24 +176,12 @@ void ServerProcess::checkUsername(const Socket* clientSocket, const std::string&
   delete []buffer;
 }
 
-void ServerProcess::checkUser(const Socket* clientSocket, const char* namePassword) {
-  // Allocate the buffer for the message to the client.
-  /* DBG: Can this be centralized somewhere so that it's not repeated? */
-  int messageLength;
-  MessageType messageType = mUsernameStatus;
-  int response;
-  messageLength = sizeof(messageLength) + sizeof(messageType) + sizeof(response);
-  char* buffer = new char[messageLength];
-  char* buf = buffer;
-  std::memcpy(buf, &messageLength, sizeof(messageLength));
-  buf += sizeof(messageLength);
-  std::memcpy(buf, &messageType, sizeof(messageType));
-  buf += sizeof(messageType);
-
+void ServerProcess::checkUser(Socket* clientSocket, const std::vector<std::string>& userDetails) {
   // Unpack the username and password from the message.
-  std::string username(namePassword);
-  std::string password(namePassword + username.length() + 1);
+  std::string username = userDetails[0];
+  std::string password = userDetails[1];
   std::vector<User>::iterator userIt;
+  int response;
   for (userIt = users.begin(); userIt != users.end(); userIt++) {
     std::string storedUsername = userIt->getUsername();
     // When the user is found:
@@ -211,9 +210,11 @@ void ServerProcess::checkUser(const Socket* clientSocket, const char* namePasswo
   if (userIt == users.end())
     response = 2;
 
-  std::memcpy(buf, &response, sizeof(response));
-  clientSocket->send(buffer);
-  delete []buffer;
+  MessageType messageType = mCheckUser;
+  int messageLength = sizeof(messageLength) + sizeof(messageType) + sizeof(response);
+  clientSocket->send(messageLength);
+  clientSocket->send(messageType);
+  clientSocket->send(response);
 
   /* If the user is logged in, set its status to online and send it the
    * list of contacts. */
@@ -263,19 +264,17 @@ void ServerProcess::checkUser(const Socket* clientSocket, const char* namePasswo
  * 3. plain text user password
  * These fields will be separated by a null-byte for easy extraction.
  */
-void ServerProcess::addUser(const Socket* clientSocket, const char* userData) {
+void ServerProcess::addUser(Socket* clientSocket, const std::vector<std::string>& userDetails) {
   /*
    * Extract the full name of the user, up to the first null-byte.  The
    * string constructor should automatically recognize the end of the
    * name-sequence by finding the null-byte.
    */
-  std::string name(userData);
-  /* This should start extraction from the first character after the
-   * first null-byte! */
-  std::string username(userData + name.length() + 1);
+  std::string name = userDetails[0];
+  std::string username = userDetails[1];
   /* Start extraction from the first character after the second
    * null-byte! */
-  std::string password(userData + name.length() + username.length() + 2);
+  std::string password = userDetails[2];
   /*
    * The password is still in plain text.  It should be encrypted and
    * prepended with salt before storing.
@@ -319,7 +318,7 @@ void ServerProcess::addUser(const Socket* clientSocket, const char* userData) {
   usersFile << line << std::endl;
 }
 
-void ServerProcess::logoutUser(const Socket* clientSocket) {
+void ServerProcess::logoutUser(Socket* clientSocket) {
   int messageLength;
   MessageType messageType = mLogoutUser;
   messageLength = sizeof(messageLength) + sizeof(messageType);
@@ -335,7 +334,7 @@ void ServerProcess::logoutUser(const Socket* clientSocket) {
    */
   std::vector<User>::iterator userIt;
   for (userIt = users.begin(); userIt != users.end(); userIt++) {
-    const Socket* userSocket = userIt->getClientSocket();
+    Socket* userSocket = userIt->getClientSocket();
     if (clientSocket == userSocket) {
       // The user has been found, so update the corresponding fields in
       // the entry.
@@ -357,7 +356,7 @@ void ServerProcess::logoutUser(const Socket* clientSocket) {
 	    /* If the contact has been found, send it a message about
 	     * the user being logged out. */
 	    // Get the client socket file descriptor.
-	    const Socket* contactSocket = innerUserIt->getClientSocket();
+	    Socket* contactSocket = innerUserIt->getClientSocket();
 	    contactSocket->send(buffer);
 	    break;
 	  }

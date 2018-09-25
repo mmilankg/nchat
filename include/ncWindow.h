@@ -13,9 +13,9 @@
  * is created and its run() function invoked.
  */
 class NCWindow {
-  const Socket* pSocket;
+  Socket* pSocket;
   public:
-  NCWindow(const Socket* pSock) : pSocket(pSock) { };
+  NCWindow(Socket* pSock) : pSocket(pSock) { };
   void run();
 };
 

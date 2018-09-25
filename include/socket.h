@@ -52,13 +52,17 @@ class Socket {
   }
   int getSfd() const { return sfd; }
   void setSfd(int fd) { sfd = fd; }
+  /* DBG: There seem to be too many different versions of send and recv
+   * functions.  Is that considered a bad practice? */
   virtual void send(const char* buf) const;
   virtual void send(const std::string& text) const;
   virtual void send(int num) const;
   virtual void send(MessageType messageType, const std::vector<std::string>& parts);
+
   virtual void recv(char* buf) const;
   virtual void recv(std::string& text) const;
-  virtual void recv(int& num) const;
+  virtual void recv(int& num) const { read(sfd, &num, sizeof(num)); }
+  virtual void recv(MessageType& messageType) const { read(sfd, &messageType, sizeof(messageType)); }
   virtual void recv(MessageType& messageType, std::vector<std::string>& parts);
   virtual Socket& acceptConnection();
   void allocateBuffer() { buffer = new char[bufSize]; }

@@ -143,12 +143,6 @@ void Socket::recv(std::string& text) const {
   text = buffer;
 }
 
-void Socket::recv(int& num) const {
-  read(sfd, buffer, bufSize);
-  std::istringstream sstream(buffer);
-  sstream >> num;
-}
-
 // Receive a set of strings in one packed message.
 void Socket::recv(MessageType& messageType, std::vector<std::string>& parts) {
   int messageLength = 0;

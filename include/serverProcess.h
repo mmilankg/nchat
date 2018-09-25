@@ -7,6 +7,7 @@
 #include <fstream>
 #include <random>
 #include <string>
+#include <vector>
 
 class ServerProcess : public Process {
   // name of the file with user data (name, password, contacts... (conversation history?))
@@ -30,10 +31,10 @@ class ServerProcess : public Process {
   int run();
 
   private:
-  void checkUsername(const Socket* clientSocket, const std::string& username) const;
-  void checkUser(const Socket* clientSocket, const char* buffer);
-  void logoutUser(const Socket* clientSocket);
-  void addUser(const Socket* clientSocket, const char* userData);
+  void checkUsername(Socket* clientSocket, const std::string& username) const;
+  void checkUser(Socket* clientSocket, const std::vector<std::string>& userDetails);
+  void logoutUser(Socket* clientSocket);
+  void addUser(Socket* clientSocket, const std::vector<std::string>& userDetails);
 };
 
 #endif	// SERVERPROCESS_H

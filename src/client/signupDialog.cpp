@@ -1,6 +1,6 @@
 #include "loginDialog.h"
 
-SignupDialog::SignupDialog(const Socket* pSocket, int h, int w, int y, int x) :
+SignupDialog::SignupDialog(Socket* pSocket, int h, int w, int y, int x) :
   Dialog(h, w, y, x)
 {
   paFormFields = new NCursesFormField*[7];
@@ -47,9 +47,9 @@ SignupDialog::SignupDialog(const Socket* pSocket, int h, int w, int y, int x) :
 }
 
 bool SignupOKItem::action() {
-  const NCursesFormField* pNameFormField = pParentPanel->getField(1);
-  const NCursesFormField* pUsernameFormField = pParentPanel->getField(3);
-  const NCursesFormField* pPasswordFormField = pParentPanel->getField(5);
+  NCursesFormField* pNameFormField = pParentPanel->getField(1);
+  NCursesFormField* pUsernameFormField = pParentPanel->getField(3);
+  NCursesFormField* pPasswordFormField = pParentPanel->getField(5);
   std::string name = pNameFormField->value();
   std::string username = pUsernameFormField->value();
   std::string password = pPasswordFormField->value();

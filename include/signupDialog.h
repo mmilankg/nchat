@@ -12,16 +12,16 @@ class SignupDialog : public Dialog {
    * Constructor: uses dialog dimensions and positions along with
    * the socket address that is passed into the Signup OK button.
    */
-  SignupDialog(const Socket* pSock, int h = 12, int w = 35, int y = 0, int x = 0);
+  SignupDialog(Socket* pSock, int h = 12, int w = 35, int y = 0, int x = 0);
   virtual ~SignupDialog() { }
 };
 
 // class for defining the action associated with the login button
 class SignupOKItem : public NCursesMenuItem {
   SignupDialog* pParentPanel;
-  const Socket* pSocket;
+  Socket* pSocket;
   public:
-  SignupOKItem(SignupDialog* pPanel, const Socket* pSock) :
+  SignupOKItem(SignupDialog* pPanel, Socket* pSock) :
     NCursesMenuItem("OK              "),
     pParentPanel(pPanel),
     pSocket(pSock)

@@ -68,8 +68,8 @@ class DialogItem : public NCursesMenuItem {
   }
 
   bool action() {
-    const NCursesFormField* pUsernameFormField = pParentDialog->getField(0);
-    const NCursesFormField* pPasswordFormField = pParentDialog->getField(1);
+    NCursesFormField* pUsernameFormField = pParentDialog->getField(0);
+    NCursesFormField* pPasswordFormField = pParentDialog->getField(1);
     char* username = pUsernameFormField->value();
     char* password = pPasswordFormField->value();
     int a = 0;
