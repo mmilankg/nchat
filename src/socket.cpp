@@ -79,21 +79,33 @@ Socket& Socket::acceptConnection() {
   return *pCommunicationSocket;
 }
 
-void Socket::send(const char* buf) const {
-  write(sfd, buf, bufSize);
-}
-
-void Socket::send(const std::string& text) const {
-  int numBytesWritten = write(sfd, text.c_str(), text.length());
-}
-
-void Socket::send(int num) const {
-  std::ostringstream sstream;
-  sstream << num;
-  int numBytesWritten = write(sfd, sstream.str().c_str(), sstream.str().length());
-}
-
 // Send a set of strings in one packed message.
+void Socket::send(MessageType messageType, const std::string& text) {
+  // Add 1 for terminating null-byte for each string.
+  int messageLength = sizeof(messageLength) + sizeof(messageType) + text.length() + 1;
+  // Extend the socket-associated buffer if the message length exceeds
+  // its size.
+  if (messageLength > bufSize) {
+    bufSize = messageLength;
+    delete []buffer;
+    buffer = new char[messageLength]();
+  }
+  /* Pack the buffer in the following order:
+   * 1. messageLength
+   * 2. messageType
+   * 3. text finishing with null-byte
+   */
+  char* buf = buffer;
+  std::memcpy(buf, &messageLength, sizeof(messageLength));
+  buf += sizeof(messageLength);
+  std::memcpy(buf, &messageType, sizeof(messageType));
+  buf += sizeof(messageType);
+  std::memcpy(buf, text.c_str(), text.length());
+  buf += text.length();
+  std::memset(buf, 0, 1);
+  write(sfd, buffer, messageLength);
+}
+
 void Socket::send(MessageType messageType, const std::vector<std::string>& parts) {
   int messageLength = sizeof(messageLength) + sizeof(messageType);
   std::vector<std::string>::const_iterator partsIterator;
@@ -124,10 +136,6 @@ void Socket::send(MessageType messageType, const std::vector<std::string>& parts
     buf++;
   }
   write(sfd, buffer, messageLength);
-}
-
-void Socket::recv(char* buf) const {
-  read(sfd, buf, bufSize);
 }
 
 void Socket::recv(std::string& text) const {

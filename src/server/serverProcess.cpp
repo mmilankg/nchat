@@ -116,16 +116,17 @@ int ServerProcess::run() {
 		addUser(clientSocket, userDetails);
 		break;
 	      }
-	    case mCheckUser :
+	    case mLogin :
 	      {
 		std::vector<std::string> userDetails;
 		bufferToStrings(buffer, contentLength, userDetails);
-		checkUser(clientSocket, userDetails);
+		login(clientSocket, userDetails);
 		break;
 	      }
-	    case mLogoutUser :
+	    case mLogout :
 	      {
-		logoutUser(clientSocket);
+		std::string username = buffer;
+		logout(clientSocket, username);
 		break;
 	      }
 	  }
@@ -176,7 +177,7 @@ void ServerProcess::checkUsername(Socket* clientSocket, const std::string& usern
   delete []buffer;
 }
 
-void ServerProcess::checkUser(Socket* clientSocket, const std::vector<std::string>& userDetails) {
+void ServerProcess::login(Socket* clientSocket, const std::vector<std::string>& userDetails) {
   // Unpack the username and password from the message.
   std::string username = userDetails[0];
   std::string password = userDetails[1];
@@ -210,7 +211,7 @@ void ServerProcess::checkUser(Socket* clientSocket, const std::vector<std::strin
   if (userIt == users.end())
     response = 2;
 
-  MessageType messageType = mCheckUser;
+  MessageType messageType = mLogin;
   int messageLength = sizeof(messageLength) + sizeof(messageType) + sizeof(response);
   clientSocket->send(messageLength);
   clientSocket->send(messageType);
@@ -230,7 +231,10 @@ void ServerProcess::checkUser(Socket* clientSocket, const std::vector<std::strin
       const std::string& contactUsername = users[contactID].getUsername();
       const std::string& contactName = users[contactID].getName();
       Status contactStatus = users[contactID].getStatus();
-      // Allocate buffer for sending the message to the client-dedicated process.
+      // Allocate buffer for sending the message to the client.
+      /* DBG: Perhaps this would be more elegant if it was done by a
+       * separate socket function, although there's a danger of having
+       * too many overloaded functions in the socket. */
       int messageLength;
       MessageType messageType = mSendContact;
       messageLength = sizeof(messageLength) + sizeof(messageType) +
@@ -256,24 +260,56 @@ void ServerProcess::checkUser(Socket* clientSocket, const std::vector<std::strin
   }
 }
 
+void ServerProcess::logout(Socket* clientSocket, const std::string& username) {
+  /*
+   * Set the pointer for this user's client socket as 0, set the user
+   * status as offline, and inform contacts to update their status flags
+   * for the user.
+   */
+  std::vector<User>::iterator userIt;
+  for (userIt = users.begin(); userIt != users.end(); userIt++) {
+    if (username == userIt->getUsername()) {
+      // The user has been found, so update the corresponding fields in
+      // the entry.
+      userIt->setClientSocket(0);
+      userIt->setStatus(offline);
+      // Iterate through the list of contacts and inform other users
+      // that this one has logged out.
+      const std::vector<int>& rContactIDs = userIt->getContactIDs();
+      std::vector<int>::const_iterator contactsIt;
+      for (contactsIt = rContactIDs.begin(); contactsIt != rContactIDs.end(); contactsIt++) {
+	/* DBG: This is going to be extremely inefficient as it involves
+	 * double loop!  There should be a better way to store user
+	 * objects so that the process ID is retrieved automatically
+	 * with user ID. */
+	std::vector<User>::iterator innerUserIt;
+	for (innerUserIt = users.begin(); innerUserIt != users.end(); innerUserIt++) {
+	  int contactID = innerUserIt->getUserID();
+	  if (contactID == *contactsIt) {
+	    /* If the contact has been found, send it a message about
+	     * the user being logged out. */
+	    // Get the client socket file descriptor.
+	    Socket* contactSocket = innerUserIt->getClientSocket();
+	    contactSocket->send(mLogout, userIt->getUsername());
+	    break;
+	  }
+	}
+      }
+      break;
+    }
+  }
+}
+
 /*
- * This function will receive an address to the location that contains
- * all user data packed in the following order:
+ * This function will receive a reference to the vector of strings in
+ * which user data is packed in the following order:
  * 1. user full name
  * 2. username
  * 3. plain text user password
- * These fields will be separated by a null-byte for easy extraction.
  */
 void ServerProcess::addUser(Socket* clientSocket, const std::vector<std::string>& userDetails) {
-  /*
-   * Extract the full name of the user, up to the first null-byte.  The
-   * string constructor should automatically recognize the end of the
-   * name-sequence by finding the null-byte.
-   */
   std::string name = userDetails[0];
   std::string username = userDetails[1];
-  /* Start extraction from the first character after the second
-   * null-byte! */
   std::string password = userDetails[2];
   /*
    * The password is still in plain text.  It should be encrypted and
@@ -287,7 +323,8 @@ void ServerProcess::addUser(Socket* clientSocket, const std::vector<std::string>
    */
   const char* saltCandidates = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./";
   char salt[2];
-  // Create salt from the first two randomly chosen characters from the set.
+  // Create salt from the first two randomly chosen characters from the
+  // set.
   salt[0] = saltCandidates[saltDistribution(saltGenerator)];
   salt[1] = saltCandidates[saltDistribution(saltGenerator)];
   char* encryptedPasswordContents = crypt(password.c_str(), salt);
@@ -316,53 +353,4 @@ void ServerProcess::addUser(Socket* clientSocket, const std::vector<std::string>
   line += name + ":";
   line += encryptedPassword + ":";
   usersFile << line << std::endl;
-}
-
-void ServerProcess::logoutUser(Socket* clientSocket) {
-  int messageLength;
-  MessageType messageType = mLogoutUser;
-  messageLength = sizeof(messageLength) + sizeof(messageType);
-  char* buffer = new char[messageLength];
-  char* buf = buffer;
-  std::memcpy(buf, &messageLength, sizeof(messageLength));
-  buf += sizeof(messageLength);
-  std::memcpy(buf, &messageType, sizeof(messageType));
-  /*
-   * Set the pointer for this user's client socket as 0, set the user
-   * status as offline, and inform contacts to update their status flags
-   * for the user.
-   */
-  std::vector<User>::iterator userIt;
-  for (userIt = users.begin(); userIt != users.end(); userIt++) {
-    Socket* userSocket = userIt->getClientSocket();
-    if (clientSocket == userSocket) {
-      // The user has been found, so update the corresponding fields in
-      // the entry.
-      userIt->setClientSocket(0);
-      userIt->setStatus(offline);
-      // Iterate through the list of contacts and inform other users
-      // that this one has logged out.
-      const std::vector<int>& rContactIDs = userIt->getContactIDs();
-      std::vector<int>::const_iterator contactsIt;
-      for (contactsIt = rContactIDs.begin(); contactsIt != rContactIDs.end(); contactsIt++) {
-	/* DBG: This is going to be extremely inefficient as it involves
-	 * double loop!  There should be a better way to store user
-	 * objects so that the process ID is retrieved automatically
-	 * with user ID. */
-	std::vector<User>::iterator innerUserIt;
-	for (innerUserIt = users.begin(); innerUserIt != users.end(); innerUserIt++) {
-	  int contactID = innerUserIt->getUserID();
-	  if (contactID == *contactsIt) {
-	    /* If the contact has been found, send it a message about
-	     * the user being logged out. */
-	    // Get the client socket file descriptor.
-	    Socket* contactSocket = innerUserIt->getClientSocket();
-	    contactSocket->send(buffer);
-	    break;
-	  }
-	}
-      }
-      break;
-    }
-  }
 }

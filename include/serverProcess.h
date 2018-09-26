@@ -32,8 +32,8 @@ class ServerProcess : public Process {
 
   private:
   void checkUsername(Socket* clientSocket, const std::string& username) const;
-  void checkUser(Socket* clientSocket, const std::vector<std::string>& userDetails);
-  void logoutUser(Socket* clientSocket);
+  void login(Socket* clientSocket, const std::vector<std::string>& userDetails);
+  void logout(Socket* clientSocket, const std::string& username);
   void addUser(Socket* clientSocket, const std::vector<std::string>& userDetails);
 };
 

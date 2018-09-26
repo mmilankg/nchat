@@ -31,13 +31,16 @@ class User {
   {
     std::istringstream contactStream(contacts);
     std::string field;
-    while (getline(contactStream, field, ','));
-    int contactID = atoi(field.c_str());
-    contactIDs.push_back(contactID);
+    while (getline(contactStream, field, ',')) {
+      int contactID = atoi(field.c_str());
+      contactIDs.push_back(contactID);
+    }
   }
   User(const User& u) :
-    userID(u.userID), username(u.username), encryptedPassword(u.encryptedPassword),
-    clientSocket(u.clientSocket), status(u.status), contactIDs(u.contactIDs)
+    userID(u.userID), username(u.username), name(u.name),
+    encryptedPassword(u.encryptedPassword),
+    clientSocket(u.clientSocket), status(u.status),
+    contactIDs(u.contactIDs)
   { }
   virtual ~User() { }
 

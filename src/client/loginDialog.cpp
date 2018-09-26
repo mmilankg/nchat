@@ -60,15 +60,20 @@ bool LoginItem::action() {
   std::vector<std::string> userDetails;
   userDetails.push_back(username);
   userDetails.push_back(password);
-  pSocket->send(mCheckUser, userDetails);
+  pSocket->send(mLogin, userDetails);
 
-  /*
+  // Get the server response.
+  int messageLength;
+  MessageType messageType;
+  int serverResponse;
+  pSocket->recv(messageLength);
+  pSocket->recv(messageType);
+  pSocket->recv(serverResponse);
   if (serverResponse == 0) {
     // Start the main working window if the user is logged in.
     NCWindow ncWindow(pSocket);
     ncWindow.run();
   }
-  */
 
   return false;
 }

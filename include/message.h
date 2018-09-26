@@ -9,8 +9,8 @@
 enum MessageType {
   mCheckUsername,   // check if a username exists when signing up a new user
   mAddUser,	    // add the new user to the vector of existing users
-  mCheckUser,	    // check if user sent the correct username/password combination
-  mLogoutUser,	    // inform the distributor process that the user is leaving
+  mLogin,	    // login a user if the username/password combination is correct
+  mLogout,	    // logout a user
   mSendContact,	    // send the client-distributed process a contact
   mUsernameStatus,  // return status on the username query for new users
   mSignupName,	    // send the name of the user to be signed up
