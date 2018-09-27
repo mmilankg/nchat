@@ -24,12 +24,11 @@ ServerProcess::ServerProcess() :
      * Parse the selected line field by field.  Fields are separated
      * by a colon.
      * 1. user id (int)
-     * 2. name (string)
-     * 3. username (string)
+     * 2. username (string)
+     * 3. real name (string)
      * 4. encrypted user password (string; first two characters are salt)
      * 5. list of contacts (integers separated by commas)
      */
-    pid_t processID = 0;
     int userID;
     std::string username;
     std::string name;
@@ -103,17 +102,11 @@ int ServerProcess::run() {
 
 	  // Process the message.
 	  switch (messageType) {
-	    case mCheckUsername :
-	      {
-		std::string username = buffer;
-		checkUsername(clientSocket, username);
-		break;
-	      }
-	    case mAddUser :
+	    case mSignup :
 	      {
 		std::vector<std::string> userDetails;
 		bufferToStrings(buffer, contentLength, userDetails);
-		addUser(clientSocket, userDetails);
+		signup(clientSocket, userDetails);
 		break;
 	      }
 	    case mLogin :
@@ -138,43 +131,26 @@ int ServerProcess::run() {
   return 0;
 }
 
-void ServerProcess::checkUsername(Socket* clientSocket, const std::string& username) const {
-  // Allocate the buffer for the message to the client.
-  int messageLength;
-  MessageType messageType = mUsernameStatus;
-  int response;
-  messageLength = sizeof(messageLength) + sizeof(messageType) + sizeof(response);
-  char* buffer = new char[messageLength];
-  char* buf = buffer;
-  std::memcpy(buf, &messageLength, sizeof(messageLength));
-  buf += sizeof(messageLength);
-  std::memcpy(buf, &messageType, sizeof(messageType));
-  buf += sizeof(messageType);
-  /*
-   * Iterate through the vector of users and check if a user with the
-   * same name already exists.  If the username is not taken, return a
-   * message to the client indicating that the chosen username is
-   * acceptable (0).  If the name has already been taken, return a
-   * message indicating that (1).
-   */
-  std::vector<User>::const_iterator userIt;
-  for (userIt = users.begin(); userIt != users.end(); userIt++) {
-    std::string storedUsername = userIt->getUsername();
-    if (username == storedUsername)
-      break;
-  }
-  /*
-   * Allow the username if the iterator reached the end of the vector
-   * without finding the match.  If the match was found, the loop is
-   * over before reaching the end of the vector.
-   */
-  if (userIt == users.end())
+void ServerProcess::signup(Socket* clientSocket, const std::vector<std::string>& userDetails) {
+  // Unpack the name, username and password from the message.
+  std::string name = userDetails[0];
+  std::string username = userDetails[1];
+  std::string password = userDetails[2];
+
+  int response;	  // response to the client
+  if (checkUsername(username) == 0) {
     response = 0;
+    addUser(clientSocket, userDetails);
+  }
   else
     response = 1;
-  std::memcpy(buf, &response, sizeof(response));
-  clientSocket->send(buffer);
-  delete []buffer;
+
+  // Return the response to the client.
+  MessageType messageType = mLogin;
+  int messageLength = sizeof(messageLength) + sizeof(messageType) + sizeof(response);
+  clientSocket->send(messageLength);
+  clientSocket->send(messageType);
+  clientSocket->send(response);
 }
 
 void ServerProcess::login(Socket* clientSocket, const std::vector<std::string>& userDetails) {
@@ -298,6 +274,31 @@ void ServerProcess::logout(Socket* clientSocket, const std::string& username) {
       break;
     }
   }
+}
+
+int ServerProcess::checkUsername(const std::string& username) const {
+  /*
+   * Iterate through the vector of users and check if a user with the
+   * same name already exists.  If the username is not taken, return 0
+   * to the calling process indicating that the chosen username is
+   * acceptable.  If the name has already been taken, return 1.
+   */
+  std::vector<User>::const_iterator userIt;
+  for (userIt = users.begin(); userIt != users.end(); userIt++) {
+    std::string storedUsername = userIt->getUsername();
+    if (username == storedUsername)
+      break;
+  }
+  /*
+   * Allow the username (return 0) if the iterator reached the end of
+   * the vector without finding the match.  If the match was found, the
+   * loop is over before reaching the end of the vector.  Return 1 to
+   * indicate that the username has already been taken.
+   */
+  if (userIt == users.end())
+    return 0;
+  else
+    return 1;
 }
 
 /*

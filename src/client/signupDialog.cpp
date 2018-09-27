@@ -1,4 +1,5 @@
 #include "loginDialog.h"
+#include "ncWindow.h"
 
 SignupDialog::SignupDialog(Socket* pSocket, int h, int w, int y, int x) :
   Dialog(h, w, y, x)
@@ -57,23 +58,26 @@ bool SignupOKItem::action() {
   username = username.substr(0, username.find_last_not_of(" ") + 1);
   password = password.substr(0, password.find_last_not_of(" ") + 1);
 
-  /*
-   * Send the name, username and password to the server.  Alternate send()
-   * and recv() calls to keep the connection synchronized.
-   */
+  // Pack user details into a vector and send through the socket.
+  std::vector<std::string> userDetails;
+  userDetails.push_back(name);
+  userDetails.push_back(username);
+  userDetails.push_back(password);
+  pSocket->send(mSignup, userDetails);
+
+  // Get the server response.
+  int messageLength;
+  MessageType messageType;
   int serverResponse;
   // Prepare the server for the signup sequence.
-  pSocket->send(cSignup);
-  pSocket->recv(serverResponse);
-  pSocket->send(name);
-  pSocket->recv(serverResponse);
-  pSocket->send(username);
-  pSocket->recv(serverResponse);
-  pSocket->send(password);
+  pSocket->recv(messageLength);
+  pSocket->recv(messageType);
   pSocket->recv(serverResponse);
 
   if (serverResponse == 0) {
     // Start the main working window after the user has signed up.
+    NCWindow ncWindow(pSocket);
+    ncWindow.run();
   }
   return false;
 }

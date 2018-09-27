@@ -7,7 +7,7 @@
 #include <cstring>
 
 enum MessageType {
-  mCheckUsername,   // check if a username exists when signing up a new user
+  mSignup,	    // sign up a new user if username is free to use
   mAddUser,	    // add the new user to the vector of existing users
   mLogin,	    // login a user if the username/password combination is correct
   mLogout,	    // logout a user

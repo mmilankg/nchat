@@ -45,18 +45,20 @@ LoginDialog::LoginDialog(Socket* pSock, int h, int w, int y, int x) :
 
 bool LoginItem::action() {
   /*
-   * The field in which the username is stored is with the index 1.  Its label
-   * is at index 0.
+   * The field in which the username is stored is with the index 1.  Its
+   * label is at index 0.
    */
   NCursesFormField* pUsernameFormField = pParentPanel->getField(1);
-  // Similarly, password is at field with index 3 (its label at index 2).
+  // Similarly, password is at field with index 3 (its label at index
+  // 2).
   NCursesFormField* pPasswordFormField = pParentPanel->getField(3);
   std::string username = pUsernameFormField->value();
   std::string password = pPasswordFormField->value();
   username = username.substr(0, username.find_last_not_of(" ") + 1);
   password = password.substr(0, password.find_last_not_of(" ") + 1);
 
-  // Send the username and password to the server (similar to SignupOKItem::action()).
+  // Send the username and password to the server (similar to
+  // SignupOKItem::action()).
   std::vector<std::string> userDetails;
   userDetails.push_back(username);
   userDetails.push_back(password);
