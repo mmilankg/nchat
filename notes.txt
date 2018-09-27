@@ -1,1 +1,3 @@
 - Consider replacing select() with poll() for handling higher number of connections.
+
+- Implement handling with broken connection pipes through exceptions.  (try-catch around socket write calls?)

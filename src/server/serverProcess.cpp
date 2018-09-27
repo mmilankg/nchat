@@ -1,5 +1,6 @@
 #include "message.h"
 #include "serverProcess.h"
+#include <signal.h>
 #include <chrono>
 
 ServerProcess::ServerProcess() :
@@ -52,6 +53,14 @@ ServerProcess::ServerProcess() :
 }
 
 int ServerProcess::run() {
+  /*
+   * Ignore the SIGPIPE signal, but later add the functionality to clean
+   * up the client if the connection is broken.
+   */
+  struct sigaction signalAction;
+  signalAction.sa_handler = SIG_IGN;
+  //sigaction(SIGPIPE, &signalAction, 0);
+
   /*
    * Prepare for the select() call so that the listening at a socket
    * doesn't completely block the execution.
