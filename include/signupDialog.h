@@ -3,7 +3,6 @@
 
 #include "dialog.h"
 #include "socket.h"
-#include "commands.h"
 
 // derived class for describing login panel
 class SignupDialog : public Dialog {

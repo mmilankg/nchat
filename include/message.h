@@ -11,6 +11,8 @@ enum MessageType {
   mAddUser,	    // add the new user to the vector of existing users
   mLogin,	    // login a user if the username/password combination is correct
   mLogout,	    // logout a user
+  mQuit,	    // user quit the program
+  mFindUser,	    // find another user to send the contact request
   mSendContact,	    // send the client-distributed process a contact
   mUsernameStatus,  // return status on the username query for new users
   mSignupName,	    // send the name of the user to be signed up

@@ -2,6 +2,7 @@
 #define LOGINDIALOG_H
 
 #include "dialog.h"
+#include "message.h"
 #include "signupDialog.h"
 
 // derived class for describing login panel
@@ -46,7 +47,7 @@ class QuitItem : public NCursesMenuItem {
   QuitItem(Socket* pSock) : NCursesMenuItem("Quit      "), pSocket(pSock) { }
   bool action() {
     // Send the server the quit command.
-    pSocket->send(cQuit);
+    pSocket->send(mQuit);
     return true;
   }
 };
