@@ -29,19 +29,22 @@ ServerProcess::ServerProcess() :
      * 3. real name (string)
      * 4. encrypted user password (string; first two characters are salt)
      * 5. list of contacts (integers separated by commas)
+     * 6. list of contact requests (integers separated by commas)
      */
     int userID;
     std::string username;
     std::string name;
     std::string password;
     std::string contacts;
+    std::string contactRequests;
     getline(ss, field, ':');
     userID = atoi(field.c_str());
     getline(ss, username, ':');
     getline(ss, name, ':');
     getline(ss, password, ':');
     getline(ss, contacts, ':');
-    users.push_back(User(userID, username, name, password, 0, offline, contacts));
+    getline(ss, contactRequests, ':');
+    users.push_back(User(userID, username, name, password, 0, offline, contacts, contactRequests));
   }
   /*
    * Clear the error state flag after reading in order to be able to write to
@@ -130,6 +133,11 @@ int ServerProcess::run() {
 		std::string username = buffer;
 		logout(clientSocket, username);
 		break;
+	      }
+	    case mFindUser :
+	      {
+		std::string requestedUsername = buffer;;
+		findUser(clientSocket, requestedUsername);
 	      }
 	  }
 	}
@@ -343,7 +351,7 @@ void ServerProcess::addUser(Socket* clientSocket, const std::vector<std::string>
   if (users.size() > 0)
     userID = users.back().getUserID() + 1;
   // empty string for contacts as the last argument
-  users.push_back(User(userID, username, name, encryptedPassword, clientSocket, online, ""));
+  users.push_back(User(userID, username, name, encryptedPassword, clientSocket, online, "", ""));
 
   /*
    * Add the user to the file listing all users and their contacts.
@@ -354,13 +362,55 @@ void ServerProcess::addUser(Socket* clientSocket, const std::vector<std::string>
   /*
    * Pack user information into a single line with the following format:
    * userID:name:username:encryptedPassword:
-   * These are separated by colons.  The last colon is the end of the line
-   * for a new user.  For an existing user, it will be followed by the list
-   * of contacts: comma-separated userIDs.
+   * These are separated by colons.  The last colon is the end of the
+   * line for a new user.  For an existing user, it will be followed by
+   * the list of contacts: comma-separated userIDs.
    */
   std::string line = std::to_string(userID) + ":";
   line += username + ":";
   line += name + ":";
   line += encryptedPassword + ":";
   usersFile << line << std::endl;
+}
+
+void ServerProcess::findUser(Socket* clientSocket, const std::string& requestedUsername) {
+  /*
+   * This function is issues when a user tries to find another user in
+   * order to establish a contact.  The server will try to find the
+   * requested user in its list of all users.
+   *
+   * If the requested user is found, the server sends the sending user a
+   * message that the contact has been found, and the requested user a
+   * message that asks for the contact to be established.  If the
+   * requested user is not online, the request is logged into its User
+   * object (new entry will be created for these requests).
+   *
+   * If the requested user is not found, the server sends the sending
+   * user a message that the contact hasn't been found.
+   */
+  std::vector<User>::iterator requestedUserIt;
+  for (requestedUserIt = users.begin(); requestedUserIt != users.end(); requestedUserIt++) {
+    if (requestedUsername == requestedUserIt->getUsername()) {
+      // The requested user has been found.  Find the sending user from
+      // its socket.
+      std::vector<User>::iterator sendingUserIt;
+      for (sendingUserIt = users.begin(); sendingUserIt != users.end(); sendingUserIt++)
+	if (clientSocket == sendingUserIt->getClientSocket())
+	  break;
+      Status requestedUserStatus = requestedUserIt->getStatus();
+      if (requestedUserStatus != offline) {
+	std::string sendingUsername = sendingUserIt->getUsername();
+      }
+      else {
+	int sendingUserID = sendingUserIt->getUserID();
+	std::vector<int>& contactRequestIDs = requestedUserIt->getContactRequestIDs();
+	contactRequestIDs.push_back(sendingUserID);
+      }
+      break;
+    }
+  }
+
+  // The requested user hasn't been found.
+  if (requestedUserIt == users.end()) {
+  }
 }

@@ -8,7 +8,7 @@
 class FindContactDialog : public Dialog {
   Socket* pSocket;
   public:
-  FindContactDialog(Socket* pSock, int h = 12, int w = 35, int y = 0, int x = 0);
+  FindContactDialog(Socket* pSock, int h = 6, int w = 35, int y = 0, int x = 0);
   virtual ~FindContactDialog() { }
 };
 

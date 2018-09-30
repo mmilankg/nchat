@@ -37,6 +37,7 @@ class ServerProcess : public Process {
 
   int checkUsername(const std::string& username) const;
   void addUser(Socket* clientSocket, const std::vector<std::string>& userDetails);
+  void findUser(Socket* clientSocket, const std::string& username);
 };
 
 #endif	// SERVERPROCESS_H

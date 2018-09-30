@@ -23,24 +23,39 @@ class User {
   Socket* clientSocket;
   Status status;
   std::vector<int> contactIDs;
+  std::vector<int> contactRequestIDs;
 
   public:
   User() : userID(0), clientSocket(0), status(offline) { }
-  User(int uid, const std::string& uname, const std::string& nm, const std::string& pwd, Socket* pSocket, Status st, const std::string& contacts) :
+  User(
+      int uid,
+      const std::string& uname,
+      const std::string& nm,
+      const std::string& pwd,
+      Socket* pSocket,
+      Status st,
+      const std::string& contacts,
+      const std::string& contactRequests) :
     userID(uid), username(uname), name(nm), encryptedPassword(pwd), clientSocket(pSocket), status(st)
   {
     std::istringstream contactStream(contacts);
+    std::istringstream contactRequestStream(contactRequests);
     std::string field;
     while (getline(contactStream, field, ',')) {
       int contactID = atoi(field.c_str());
       contactIDs.push_back(contactID);
+    }
+    while (getline(contactRequestStream, field, ',')) {
+      int contactRequestID = atoi(field.c_str());
+      contactRequestIDs.push_back(contactRequestID);
     }
   }
   User(const User& u) :
     userID(u.userID), username(u.username), name(u.name),
     encryptedPassword(u.encryptedPassword),
     clientSocket(u.clientSocket), status(u.status),
-    contactIDs(u.contactIDs)
+    contactIDs(u.contactIDs),
+    contactRequestIDs(u.contactRequestIDs)
   { }
   virtual ~User() { }
 
@@ -58,6 +73,8 @@ class User {
   void setStatus(Status st) { status = st; }
   const std::vector<int>& getContactIDs() const { return contactIDs; }
   void setContactIDs(const std::vector<int>& cids) { contactIDs = cids; }
+  std::vector<int>& getContactRequestIDs() { return contactRequestIDs; }
+  void setContactRequestIDs(const std::vector<int>& crids) { contactRequestIDs = crids; }
 };
 
 // stripped down class for representing a user as a contact of another user
