@@ -86,4 +86,10 @@ class LabelField : public NCursesFormField {
     }
 };
 
+class OKItem : public NCursesMenuItem {
+  public:
+  OKItem() : NCursesMenuItem("            OK            ") { };
+  bool action() { return true; }
+};
+
 #endif	// DIALOG_H

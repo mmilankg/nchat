@@ -1,18 +1,22 @@
-#include "socket.h"
 #include "loginDialog.h"
+#include "socket.h"
+#include "user.h"
 #include <cursesapp.h>
 #include <cursesm.h>
 #include <cursesf.h>
 
 class NCClient : public NCursesApplication {
   Socket socket;
+  /* DBG: The user object is not currently used, but it seems natural
+   * that the application itself should have the information on which
+   * user is logged on through it. */
+  User user;
 protected:
   int titlesize() const { return 1; }
   void title();
 public:
-  /* Hard-code server address (192.168.0.10) and port number (10001). */
-  //NCClient() : NCursesApplication(true), socket("192.168.0.10", 10001, 1024) { }
-  /* Hard-code server address (127.0.0.1) and port number (10001). */
+  /* Hard-code server address (127.0.0.1, for testing) and port number
+   * (10001). */
   NCClient() : NCursesApplication(true), socket("127.0.0.1", 10001, 1024) { }
   int run();
   Socket& getSocket() { return socket; }

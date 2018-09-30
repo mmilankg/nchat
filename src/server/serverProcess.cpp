@@ -391,6 +391,9 @@ void ServerProcess::findUser(Socket* clientSocket, const std::string& requestedU
   std::vector<User>::iterator requestedUserIt;
   for (requestedUserIt = users.begin(); requestedUserIt != users.end(); requestedUserIt++) {
     if (requestedUsername == requestedUserIt->getUsername()) {
+      // Send the requesting user response 0.
+      clientSocket->send(mFindUser);
+      clientSocket->send(1);
       // The requested user has been found.  Find the sending user from
       // its socket.
       std::vector<User>::iterator sendingUserIt;
@@ -410,7 +413,10 @@ void ServerProcess::findUser(Socket* clientSocket, const std::string& requestedU
     }
   }
 
-  // The requested user hasn't been found.
+  // The requested user hasn't been found.  Send the requesting user
+  // response 1.
   if (requestedUserIt == users.end()) {
+    clientSocket->send(mFindUser);
+    clientSocket->send(1);
   }
 }

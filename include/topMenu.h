@@ -36,6 +36,16 @@ class FindContactCancelItem : public NCursesMenuItem {
   bool action() { return true; }
 };
 
+class ContactRequestReturnDialog : public Dialog {
+  public:
+  ContactRequestReturnDialog(
+      const std::string& contactUsername,
+      int serverResponse,
+      int h = 4, int w = 35, int y = 0, int x = 0
+      );
+  virtual ~ContactRequestReturnDialog() { }
+};
+
 class FindContactItem : public NCursesMenuItem {
   Socket* pSocket;
   public:
