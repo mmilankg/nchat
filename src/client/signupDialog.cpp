@@ -1,5 +1,5 @@
-#include "loginDialog.h"
 #include "ncWindow.h"
+#include "signupDialog.h"
 
 SignupDialog::SignupDialog(Socket* pSocket, int h, int w, int y, int x) :
   Dialog(h, w, y, x)

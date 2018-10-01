@@ -388,12 +388,12 @@ void ServerProcess::findUser(Socket* clientSocket, const std::string& requestedU
    * If the requested user is not found, the server sends the sending
    * user a message that the contact hasn't been found.
    */
+  int serverResponse;
   std::vector<User>::iterator requestedUserIt;
   for (requestedUserIt = users.begin(); requestedUserIt != users.end(); requestedUserIt++) {
     if (requestedUsername == requestedUserIt->getUsername()) {
       // Send the requesting user response 0.
-      clientSocket->send(mFindUser);
-      clientSocket->send(1);
+      serverResponse = 0;
       // The requested user has been found.  Find the sending user from
       // its socket.
       std::vector<User>::iterator sendingUserIt;
@@ -415,8 +415,10 @@ void ServerProcess::findUser(Socket* clientSocket, const std::string& requestedU
 
   // The requested user hasn't been found.  Send the requesting user
   // response 1.
-  if (requestedUserIt == users.end()) {
-    clientSocket->send(mFindUser);
-    clientSocket->send(1);
-  }
+  if (requestedUserIt == users.end())
+    serverResponse = 1;
+
+  clientSocket->send(mFindUser);
+  clientSocket->send(serverResponse);
+  clientSocket->send(requestedUsername);
 }

@@ -46,6 +46,28 @@ void NCWindow::run() {
     new NCursesPanel(background.height() / 3 - 1, 2 * background.width() / 3 - 1, 2 * background.height() / 3 + 1, background.width() / 3 + 1);
   pMessagePanel->boldframe("Message");
 
+  background.refresh();
+  pTopMenu->post();
+  pTopMenu->show();
+  pTopMenu->refresh();
+
+  /* DBG: testing the select call in the client program */
+  /*
+   * Prepare for the select() call that should intercept socket and
+   * keyboard events.
+   */
+  fd_set socketDescriptors;
+  FD_ZERO(&socketDescriptors);
+  int stdinFD = fileno(stdin);
+  int socketFD = pSocket->getSfd();
+  FD_SET(stdinFD, &socketDescriptors);
+  FD_SET(socketFD, &socketDescriptors);
+  int nSockets = socketFD;
+  select(nSockets + 1, &socketDescriptors, 0, 0, 0);
+  enum PanelSelection { eTopMenu, eContacts, eHistory, eMessage };
+  PanelSelection panelSelection = eTopMenu;
+  sleep(2);
+  /*
   bool logout = false;
   bool quit = false;
   while (!logout && !quit) {
@@ -53,7 +75,11 @@ void NCWindow::run() {
     logout = pTopMenu->getLogoutStatus();
     quit = pTopMenu->getQuitStatus();
   }
+  */
 
+  pTopMenu->unpost();
+  pTopMenu->hide();
+  pTopMenu->refresh();
   delete pTopMenu;
   delete pContactsPanel;
   delete pHistoryPanel;
