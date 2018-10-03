@@ -174,6 +174,7 @@ class TopMenu : public NCursesMenu {
 
   bool getLogoutStatus() const { return ((AccountItem*)paItems[1])->getLogoutStatus(); }
   bool getQuitStatus() const { return ((AccountItem*)paItems[1])->getQuitStatus(); }
+  void handleKey();
 };
 
 #endif	// TOPMENU_H

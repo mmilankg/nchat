@@ -56,26 +56,29 @@ void NCWindow::run() {
    * Prepare for the select() call that should intercept socket and
    * keyboard events.
    */
-  fd_set socketDescriptors;
-  FD_ZERO(&socketDescriptors);
+  fd_set fileDescriptors;
+  FD_ZERO(&fileDescriptors);
   int stdinFD = fileno(stdin);
   int socketFD = pSocket->getSfd();
-  FD_SET(stdinFD, &socketDescriptors);
-  FD_SET(socketFD, &socketDescriptors);
+  FD_SET(stdinFD, &fileDescriptors);
+  FD_SET(socketFD, &fileDescriptors);
   int nSockets = socketFD;
-  select(nSockets + 1, &socketDescriptors, 0, 0, 0);
   enum PanelSelection { eTopMenu, eContacts, eHistory, eMessage };
   PanelSelection panelSelection = eTopMenu;
-  sleep(2);
-  /*
+
   bool logout = false;
   bool quit = false;
   while (!logout && !quit) {
-    pTopMenu->operator()();
-    logout = pTopMenu->getLogoutStatus();
-    quit = pTopMenu->getQuitStatus();
+    select(nSockets + 1, &fileDescriptors, 0, 0, 0);
+    if (FD_ISSET(stdinFD, &fileDescriptors)) {
+      pTopMenu->handleKey();
+      //pTopMenu->operator()();
+      logout = pTopMenu->getLogoutStatus();
+      quit = pTopMenu->getQuitStatus();
+    }
+    else if (FD_ISSET(socketFD, &fileDescriptors)) {
+    }
   }
-  */
 
   pTopMenu->unpost();
   pTopMenu->hide();

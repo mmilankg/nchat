@@ -11,6 +11,7 @@ Dialog::Dialog(int height, int width, int y0, int x0) :
   pRegularExpressionFieldType(NULL)
 { }
 
+/* DBG: perhaps there's a better place for this. */
 static const int CMD_QUIT   = MAX_COMMAND + 1;
 static const int CMD_ACTION = MAX_COMMAND + 2;
 

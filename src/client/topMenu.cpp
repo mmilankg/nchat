@@ -54,3 +54,59 @@ ContactRequestReturnDialog::ContactRequestReturnDialog(
   InitMenu(paMenuItems, false, true);
   set_format(1, 1);
 }
+
+/* DBG: There should be a better place for this, especially because it
+ * also appears in dialog.cpp! */
+static const int CMD_QUIT   = MAX_COMMAND + 1;
+static const int CMD_ACTION = MAX_COMMAND + 2;
+
+void TopMenu::handleKey() {
+  // copied from cursesm.cc in ncurses-5.9 distribution
+  int err;
+  bool bAction;
+  int c = getKey();
+  int driverCommand = virtualize(c);
+
+  switch ((err = driver(driverCommand))) {
+    case E_REQUEST_DENIED:
+      On_Request_Denied(c);
+      break;
+    case E_NOT_SELECTABLE:
+      On_Not_Selectable(c);
+      break;
+    case E_UNKNOWN_COMMAND:
+      if (driverCommand == CMD_ACTION) {
+	if (options() & O_ONEVALUE) {
+	  NCursesMenuItem* itm = current_item();
+	  assert(itm != 0);
+	  if (itm->options() & O_SELECTABLE)
+	    {
+	      bAction = itm->action();
+	      refresh();
+	    }
+	  else
+	    On_Not_Selectable(c);
+	}
+	else {
+	  int n = count();
+	  for(int i = 0; i < n; i++) {
+	    NCursesMenuItem* itm = operator[](i);
+	    if (itm->value()) {
+	      bAction |= itm->action();
+	      refresh();
+	    }
+	  }
+	}
+      } else
+	On_Unknown_Command(c);
+      break;
+    case E_NO_MATCH:
+      On_No_Match(c);
+      break;
+    case E_OK:
+      break;
+    default:
+      OnError(err);
+  }
+  refresh();
+}
