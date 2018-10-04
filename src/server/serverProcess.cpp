@@ -64,20 +64,22 @@ int ServerProcess::run() {
   signalAction.sa_handler = SIG_IGN;
   //sigaction(SIGPIPE, &signalAction, 0);
 
-  /*
-   * Prepare for the select() call so that the listening at a socket
-   * doesn't completely block the execution.
-   */
-  fd_set socketDescriptors;
-  FD_ZERO(&socketDescriptors);
-  int nSockets = listeningSocket.getSfd() + clientSockets.size();
-  FD_SET(nSockets, &socketDescriptors);
-
   // set up buffer for receiving messages
   /* DBG: Perhaps the buffer address should be a class member.  And it
    * would be good to set the buffer size as a constant element. */
   char* buffer = new char[1024]();
   while (true) {
+    /*
+     * Prepare for the select() call so that the listening at a socket
+     * doesn't completely block the execution.
+     */
+    fd_set socketDescriptors;
+    FD_ZERO(&socketDescriptors);
+    int nSockets = listeningSocket.getSfd() + clientSockets.size();
+    FD_SET(listeningSocket.getSfd(), &socketDescriptors);
+    for (std::vector<Socket*>::iterator sockIt = clientSockets.begin(); sockIt != clientSockets.end(); sockIt++)
+      FD_SET((*sockIt)->getSfd(), &socketDescriptors);
+
     /*
      * Start the select() function, but only for reading when sockets
      * are ready.  Set the last value to 0 in order to listen
@@ -92,10 +94,6 @@ int ServerProcess::run() {
        * copy-constructor. */
       Socket* pSocket = new Socket(listeningSocket.acceptConnection());
       clientSockets.push_back(pSocket);
-      /* Update the number of sockets and the list of descriptors for
-       * the select() call. */
-      nSockets++;
-      FD_SET(nSockets, &socketDescriptors);
     }
     // for messages on client sockets
     else {
