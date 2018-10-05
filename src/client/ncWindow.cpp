@@ -51,24 +51,25 @@ void NCWindow::run() {
   pTopMenu->show();
   pTopMenu->refresh();
 
-  /* DBG: testing the select call in the client program */
-  /*
-   * Prepare for the select() call that should intercept socket and
-   * keyboard events.
-   */
   fd_set fileDescriptors;
-  FD_ZERO(&fileDescriptors);
   int stdinFD = fileno(stdin);
   int socketFD = pSocket->getSfd();
-  FD_SET(stdinFD, &fileDescriptors);
-  FD_SET(socketFD, &fileDescriptors);
   int nSockets = socketFD;
   enum PanelSelection { eTopMenu, eContacts, eHistory, eMessage };
   PanelSelection panelSelection = eTopMenu;
 
+  /* DBG: Set up buffer for receiving messages from the server. */
+  char* buffer = new char[1024]();
   bool logout = false;
   bool quit = false;
   while (!logout && !quit) {
+    /*
+     * Prepare for the select() call that should intercept socket and
+     * keyboard events.
+     */
+    FD_ZERO(&fileDescriptors);
+    FD_SET(stdinFD, &fileDescriptors);
+    FD_SET(socketFD, &fileDescriptors);
     select(nSockets + 1, &fileDescriptors, 0, 0, 0);
     if (FD_ISSET(stdinFD, &fileDescriptors)) {
       pTopMenu->handleKey();
@@ -76,7 +77,26 @@ void NCWindow::run() {
       logout = pTopMenu->getLogoutStatus();
       quit = pTopMenu->getQuitStatus();
     }
-    else if (FD_ISSET(socketFD, &fileDescriptors)) {
+    if (FD_ISSET(socketFD, &fileDescriptors)) {
+      /* message processing similar to the server process */
+      int messageLength;
+      MessageType messageType;
+      pSocket->recv(messageLength);
+      pSocket->recv(messageType);
+      pSocket->recv(buffer);
+      int contentLength = messageLength - sizeof(messageLength) - sizeof(messageType);
+
+      // Process the message.
+      switch (messageType) {
+	case mFindUser :
+	  {
+	    int serverResponse = *buffer;
+	    buffer += sizeof(serverResponse);
+	    std::string requestedUsername = buffer;
+	    FindUserDialog findUserResponse(serverResponse, requestedUsername);
+	    findUserResponse.run();
+	  }
+      }
     }
   }
 

@@ -88,8 +88,32 @@ class LabelField : public NCursesFormField {
 
 class OKItem : public NCursesMenuItem {
   public:
-  OKItem() : NCursesMenuItem("            OK            ") { };
+  OKItem() : NCursesMenuItem("                     OK                     ") { };
   bool action() { return true; }
+};
+
+class FindUserDialog : public Dialog {
+  public:
+  FindUserDialog(
+      int serverResponse, const std::string& username,
+      int h = 3, int w = 45, int y = 0, int x = 0
+      ) :
+    Dialog(h, w, y, x)
+  {
+    paFormFields = new NCursesFormField*[2];
+    std::string message = "User " + username + " has ";
+    if (serverResponse == 1)
+      message += "not ";
+    message += "been found.";
+    paFormFields[0] = new LabelField(message, 0, 1);
+    paFormFields[1] = new NCursesFormField();
+    InitForm(paFormFields, true, true);
+
+    paMenuItems = new NCursesMenuItem*[2];
+    paMenuItems[0] = new OKItem();
+    paMenuItems[1] = new NCursesMenuItem();
+    InitMenu(paMenuItems, false, true);
+  }
 };
 
 #endif	// DIALOG_H

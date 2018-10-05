@@ -55,7 +55,10 @@ class Socket {
   /* DBG: There seem to be too many different versions of send and recv
    * functions.  Is that considered a bad practice? */
   virtual void send(const char* buf) const { write(sfd, buf, bufSize); }
-  virtual void send(const std::string& text) const { write(sfd, text.c_str(), text.length()); }
+  virtual void send(const std::string& text) const {
+    // Terminate with 0.
+    write(sfd, text.c_str(), text.length() + 1);
+  }
   virtual void send(int num) const { write(sfd, &num, sizeof(num)); }
   virtual void send(MessageType messageType) const { write(sfd, &messageType, sizeof(messageType)); }
   virtual void send(MessageType messageType, const std::string& text);

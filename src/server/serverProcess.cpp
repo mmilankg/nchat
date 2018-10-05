@@ -134,7 +134,7 @@ int ServerProcess::run() {
 	      }
 	    case mFindUser :
 	      {
-		std::string requestedUsername = buffer;;
+		std::string requestedUsername = buffer;
 		findUser(clientSocket, requestedUsername);
 	      }
 	  }
@@ -143,6 +143,8 @@ int ServerProcess::run() {
     }
   }
 
+  /* DBG */
+  delete []buffer;
   return 0;
 }
 
@@ -213,6 +215,8 @@ void ServerProcess::login(Socket* clientSocket, const std::vector<std::string>& 
   if (response == 0) {
     // Mark the user's status in the list of all users as online.
     userIt->setStatus(online);
+    // Set the client socket for this user.
+    userIt->setClientSocket(clientSocket);
 
     // Send the list of contacts to the user.
     const std::vector<int>& contacts = userIt->getContactIDs();
@@ -416,6 +420,8 @@ void ServerProcess::findUser(Socket* clientSocket, const std::string& requestedU
   if (requestedUserIt == users.end())
     serverResponse = 1;
 
+  int messageLength = sizeof(messageLength) + sizeof(mFindUser) + sizeof(serverResponse) + requestedUsername.length();
+  clientSocket->send(messageLength);
   clientSocket->send(mFindUser);
   clientSocket->send(serverResponse);
   clientSocket->send(requestedUsername);
