@@ -66,14 +66,6 @@ class DialogItem : public NCursesMenuItem {
   DialogItem(const char* s, Dialog* pDialog) : NCursesMenuItem(s) {
     pParentDialog = pDialog;
   }
-
-  bool action() {
-    NCursesFormField* pUsernameFormField = pParentDialog->getField(0);
-    NCursesFormField* pPasswordFormField = pParentDialog->getField(1);
-    char* username = pUsernameFormField->value();
-    char* password = pPasswordFormField->value();
-    int a = 0;
-  }
 };
 
 // field item for static labels (adapted from ncurses demo.cc)

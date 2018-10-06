@@ -29,22 +29,25 @@ ServerProcess::ServerProcess() :
      * 3. real name (string)
      * 4. encrypted user password (string; first two characters are salt)
      * 5. list of contacts (integers separated by commas)
-     * 6. list of contact requests (integers separated by commas)
+     * 6. list of sent contact requests (integers separated by commas)
+     * 7. list of received contact requests (integers separated by commas)
      */
     int userID;
     std::string username;
     std::string name;
     std::string password;
     std::string contacts;
-    std::string contactRequests;
+    std::string sentContactRequests;
+    std::string receivedContactRequests;
     getline(ss, field, ':');
     userID = atoi(field.c_str());
     getline(ss, username, ':');
     getline(ss, name, ':');
     getline(ss, password, ':');
     getline(ss, contacts, ':');
-    getline(ss, contactRequests, ':');
-    users.push_back(User(userID, username, name, password, 0, offline, contacts, contactRequests));
+    getline(ss, sentContactRequests, ':');
+    getline(ss, receivedContactRequests, ':');
+    users.push_back(User(userID, username, name, password, 0, offline, contacts, sentContactRequests, receivedContactRequests));
   }
   /*
    * Clear the error state flag after reading in order to be able to write to
@@ -353,7 +356,7 @@ void ServerProcess::addUser(Socket* clientSocket, const std::vector<std::string>
   if (users.size() > 0)
     userID = users.back().getUserID() + 1;
   // empty string for contacts as the last argument
-  users.push_back(User(userID, username, name, encryptedPassword, clientSocket, online, "", ""));
+  users.push_back(User(userID, username, name, encryptedPassword, clientSocket, online, "", "", ""));
 
   /*
    * Add the user to the file listing all users and their contacts.
@@ -377,18 +380,22 @@ void ServerProcess::addUser(Socket* clientSocket, const std::vector<std::string>
 
 void ServerProcess::findUser(Socket* clientSocket, const std::string& requestedUsername) {
   /*
-   * This function is issues when a user tries to find another user in
+   * This function is invoked when a user tries to find another user in
    * order to establish a contact.  The server will try to find the
    * requested user in its list of all users.
    *
    * If the requested user is found, the server sends the sending user a
    * message that the contact has been found, and the requested user a
-   * message that asks for the contact to be established.  If the
-   * requested user is not online, the request is logged into its User
-   * object (new entry will be created for these requests).
+   * message that asks for the contact to be established.  The User
+   * object for both users will also be updated to include the ID of the
+   * other user in the sentContactRequests field for the sending user
+   * and the receivedContactRequests field for the requested user.
    *
    * If the requested user is not found, the server sends the sending
-   * user a message that the contact hasn't been found.
+   * user a response 1 indicating that the contact hasn't been found.
+   *
+   * The server doesn't allow a user to request a contact with
+   * themselves and returns a response 2 to indicate that to the client.
    */
   int serverResponse;
   std::vector<User>::iterator requestedUserIt;
@@ -402,14 +409,24 @@ void ServerProcess::findUser(Socket* clientSocket, const std::string& requestedU
       for (sendingUserIt = users.begin(); sendingUserIt != users.end(); sendingUserIt++)
 	if (clientSocket == sendingUserIt->getClientSocket())
 	  break;
-      Status requestedUserStatus = requestedUserIt->getStatus();
-      if (requestedUserStatus != offline) {
-	std::string sendingUsername = sendingUserIt->getUsername();
+      // It's not allowed for a user to establish a self-contact.
+      if (requestedUserIt == sendingUserIt) {
+	serverResponse = 2;
+	break;
       }
-      else {
-	int sendingUserID = sendingUserIt->getUserID();
-	std::vector<int>& contactRequestIDs = requestedUserIt->getContactRequestIDs();
-	contactRequestIDs.push_back(sendingUserID);
+      int sendingUserID = sendingUserIt->getUserID();
+      int requestedUserID = requestedUserIt->getUserID();
+      std::vector<int>& sentContactRequestIDs = requestedUserIt->getSentContactRequestIDs();
+      sentContactRequestIDs.push_back(requestedUserID);
+      std::vector<int>& receivedContactRequestIDs = requestedUserIt->getReceivedContactRequestIDs();
+      receivedContactRequestIDs.push_back(sendingUserID);
+      Socket* requestedUserSocket = requestedUserIt->getClientSocket();
+      if (requestedUserSocket != 0) {
+	std::string sendingUsername = sendingUserIt->getUsername();
+	int messageLength = sizeof(messageLength) + sizeof(mContactRequest) + sendingUsername.length();
+	requestedUserSocket->send(messageLength);
+	requestedUserSocket->send(mContactRequest);
+	requestedUserSocket->send(sendingUsername);
       }
       break;
     }

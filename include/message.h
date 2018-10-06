@@ -13,6 +13,7 @@ enum MessageType {
   mLogout,	    // logout a user
   mQuit,	    // user quit the program
   mFindUser,	    // find another user to send the contact request
+  mContactRequest,  // send the contact request (and response to it?)
   mSendContact,	    // send the client-distributed process a contact
   mUsernameStatus,  // return status on the username query for new users
   mSignupName,	    // send the name of the user to be signed up

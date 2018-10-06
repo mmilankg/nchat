@@ -23,7 +23,8 @@ class User {
   Socket* clientSocket;
   Status status;
   std::vector<int> contactIDs;
-  std::vector<int> contactRequestIDs;
+  std::vector<int> sentContactRequestIDs;
+  std::vector<int> receivedContactRequestIDs;
 
   public:
   User() : userID(0), clientSocket(0), status(offline) { }
@@ -35,19 +36,25 @@ class User {
       Socket* pSocket,
       Status st,
       const std::string& contacts,
-      const std::string& contactRequests) :
+      const std::string& sentContactRequests,
+      const std::string& receivedContactRequests) :
     userID(uid), username(uname), name(nm), encryptedPassword(pwd), clientSocket(pSocket), status(st)
   {
     std::istringstream contactStream(contacts);
-    std::istringstream contactRequestStream(contactRequests);
+    std::istringstream sentContactRequestStream(sentContactRequests);
+    std::istringstream receivedContactRequestStream(receivedContactRequests);
     std::string field;
     while (getline(contactStream, field, ',')) {
       int contactID = atoi(field.c_str());
       contactIDs.push_back(contactID);
     }
-    while (getline(contactRequestStream, field, ',')) {
-      int contactRequestID = atoi(field.c_str());
-      contactRequestIDs.push_back(contactRequestID);
+    while (getline(sentContactRequestStream, field, ',')) {
+      int sentContactRequestID = atoi(field.c_str());
+      sentContactRequestIDs.push_back(sentContactRequestID);
+    }
+    while (getline(receivedContactRequestStream, field, ',')) {
+      int receivedContactRequestID = atoi(field.c_str());
+      receivedContactRequestIDs.push_back(receivedContactRequestID);
     }
   }
   User(const User& u) :
@@ -55,7 +62,8 @@ class User {
     encryptedPassword(u.encryptedPassword),
     clientSocket(u.clientSocket), status(u.status),
     contactIDs(u.contactIDs),
-    contactRequestIDs(u.contactRequestIDs)
+    sentContactRequestIDs(u.sentContactRequestIDs),
+    receivedContactRequestIDs(u.receivedContactRequestIDs)
   { }
   virtual ~User() { }
 
@@ -73,8 +81,10 @@ class User {
   void setStatus(Status st) { status = st; }
   const std::vector<int>& getContactIDs() const { return contactIDs; }
   void setContactIDs(const std::vector<int>& cids) { contactIDs = cids; }
-  std::vector<int>& getContactRequestIDs() { return contactRequestIDs; }
-  void setContactRequestIDs(const std::vector<int>& crids) { contactRequestIDs = crids; }
+  std::vector<int>& getSentContactRequestIDs() { return sentContactRequestIDs; }
+  void setSentContactRequestIDs(const std::vector<int>& crids) { sentContactRequestIDs = crids; }
+  std::vector<int>& getReceivedContactRequestIDs() { return receivedContactRequestIDs; }
+  void setReceivedContactRequestIDs(const std::vector<int>& crids) { receivedContactRequestIDs = crids; }
 };
 
 // stripped down class for representing a user as a contact of another user
