@@ -48,7 +48,7 @@ class SentContactRequest : public NCursesMenu {
 
   public:
   SentContactRequest(const std::string& username) :
-    NCursesMenu(1, username.length() + 2 + 7 * nItems + 2, 0, 0), paItems(0)
+    NCursesMenu(1, username.length() + 2 + 7 * nItems + 2, 2, 2), paItems(0)
   {
     paItems = new NCursesMenuItem*[1 + nItems];
     paItems[0] = new NCursesMenuItem(username.c_str());

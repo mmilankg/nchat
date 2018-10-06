@@ -30,7 +30,7 @@ class NCWindow {
     delete pMessagePanel;
   }
   void run();
-  void addContact(const std::string& username);
+  void addContact(const std::string& username, int origin);
 };
 
 #endif	// NCWINDOW_H

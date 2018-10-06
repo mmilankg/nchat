@@ -107,7 +107,7 @@ void NCWindow::run() {
 	    findUserResponse.run();
 
 	    /* Add the contact entry to the contacts panel. */
-	    addContact(requestedUsername);
+	    addContact(requestedUsername, 1);
 	  }
       }
     }
@@ -120,5 +120,22 @@ void NCWindow::run() {
   pBackground->refresh();
 }
 
-void NCWindow::addContact(const std::string& username) {
+void NCWindow::addContact(const std::string& username, int origin) {
+  /*
+   * Add an entry into the contacts panel.  If origin is 0, this will be
+   * an entry for a user who sent the contact request.  If origin is 1,
+   * it will be for a user who receives it.
+   *
+   * DBG: Is this considered a bad practice?  Would an enumerated type
+   * be better to use for origin?
+   */
+  NCursesMenu* pContact;
+  if (origin == 0)
+    pContact = new ReceivedContactRequest(username);
+  else
+    pContact = new SentContactRequest(username);
+  pContact->post();
+  pContact->show();
+  pContact->refresh();
+  pBackground->refresh();
 }
