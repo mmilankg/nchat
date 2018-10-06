@@ -100,18 +100,18 @@ class LogoutItem : public NCursesMenuItem {
   bool getLogoutStatus() const { return logout; }
 };
 
-class QuitItem : public NCursesMenuItem {
+class ExitItem : public NCursesMenuItem {
   Socket* pSocket;
-  bool quit;
+  bool exit;
 
   public:
-  QuitItem(const char* pTitle, Socket* pSock) : NCursesMenuItem(pTitle), pSocket(pSock), quit(false) { }
+  ExitItem(const char* pTitle, Socket* pSock) : NCursesMenuItem(pTitle), pSocket(pSock), exit(false) { }
 
   bool action() {
-    quit = true;
+    exit = true;
     return true;
   }
-  bool getQuitStatus() const { return quit; }
+  bool getExitStatus() const { return exit; }
 };
 
 class AccountMenu : public NCursesMenu {
@@ -124,36 +124,36 @@ class AccountMenu : public NCursesMenu {
     NCursesMenu(nItems, 9, 1, 12), paItems(0), pSocket(pSock) {
     paItems = new NCursesMenuItem*[1 + nItems];
     paItems[0] = new LogoutItem("Log out ", pSocket);
-    paItems[1] = new QuitItem("Quit", pSocket);
+    paItems[1] = new ExitItem("Exit", pSocket);
     paItems[2] = new NCursesMenuItem();
 
     InitMenu(paItems, false, true);
   }
   // DBG: Are these constructs OK for downcasting pointers?
   bool getLogoutStatus() const { return ((LogoutItem*)paItems[0])->getLogoutStatus(); }
-  bool getQuitStatus() const { return ((QuitItem*)paItems[1])->getQuitStatus(); }
+  bool getExitStatus() const { return ((ExitItem*)paItems[1])->getExitStatus(); }
 };
 
 class AccountItem : public NCursesMenuItem {
   Socket* pSocket;
   bool logout;
-  bool quit;
+  bool exit;
 
   public:
   AccountItem(const char* pTitle, Socket* pSock) :
     NCursesMenuItem(pTitle), pSocket(pSock),
-    logout(false), quit(false)
+    logout(false), exit(false)
   { }
 
   bool action() {
     AccountMenu accountMenu(pSocket);
     accountMenu();
     logout = accountMenu.getLogoutStatus();
-    quit = accountMenu.getQuitStatus();
-    return logout || quit;
+    exit = accountMenu.getExitStatus();
+    return logout || exit;
   }
   bool getLogoutStatus() const { return logout; }
-  bool getQuitStatus() const { return quit; }
+  bool getExitStatus() const { return exit; }
 };
 
 class TopMenu : public NCursesMenu {
@@ -173,7 +173,7 @@ class TopMenu : public NCursesMenu {
   }
 
   bool getLogoutStatus() const { return ((AccountItem*)paItems[1])->getLogoutStatus(); }
-  bool getQuitStatus() const { return ((AccountItem*)paItems[1])->getQuitStatus(); }
+  bool getExitStatus() const { return ((AccountItem*)paItems[1])->getExitStatus(); }
   void handleKey();
 };
 

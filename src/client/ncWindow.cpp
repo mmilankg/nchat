@@ -1,10 +1,50 @@
 #include "contactMenu.h"
 #include "ncWindow.h"
-#include "topMenu.h"
 #include "user.h"
 #include <cursesp.h>
 #include <fstream>
 #include <vector>
+
+NCWindow::NCWindow(Socket* pSock) : pSocket(pSock) {
+  /* Create the background panel and split it into three areas. */
+  pBackground = new NCursesPanel();
+  pBackground->box();
+  pBackground->move(1, pBackground->width() / 3);
+  pBackground->vline(pBackground->height() - 2);
+  pBackground->move(2 * pBackground->height() / 3, pBackground->width() / 3 + 1);
+  pBackground->hline(2 * pBackground->width() / 3 - 1);
+  pBackground->addch(0, pBackground->width() / 3, ACS_TTEE);
+  pBackground->addch(pBackground->height() - 1, pBackground->width() / 3, ACS_BTEE);
+  pBackground->addch(2 * pBackground->height() / 3, pBackground->width() / 3, ACS_LTEE);
+  pBackground->addch(2 * pBackground->height() / 3, pBackground->width() - 1, ACS_RTEE);
+
+  /* Create the top menu. */
+  pTopMenu = new TopMenu(pSocket);
+
+  /* Create the contacts panel. */
+  pContactsPanel = new NCursesPanel(
+      pBackground->height() - 2,
+      pBackground->width() / 3 - 1,
+      1,
+      1);
+  pContactsPanel->boldframe("Contacts");
+
+  /* Create chat history panel. */
+  pHistoryPanel = new NCursesPanel(
+      2 * pBackground->height() / 3 - 1,
+      2 * pBackground->width() / 3 - 1,
+      1,
+      pBackground->width() / 3 + 1);
+  pHistoryPanel->boldframe("History");
+
+  /* Create current message panel. */
+  pMessagePanel = new NCursesPanel(
+      pBackground->height() / 3 - 1,
+      2 * pBackground->width() / 3 - 1,
+      2 * pBackground->height() / 3 + 1,
+      pBackground->width() / 3 + 1);
+  pMessagePanel->boldframe("Message");
+}
 
 void NCWindow::run() {
   // vector of contacts
@@ -16,37 +56,7 @@ void NCWindow::run() {
     vpContactMenus.push_back(pContactMenu);
   }
 
-  /* Create the background panel and split it into three areas. */
-  NCursesPanel background;
-  background.box();
-  background.move(1, background.width() / 3);
-  background.vline(background.height() - 2);
-  background.move(2 * background.height() / 3, background.width() / 3 + 1);
-  background.hline(2 * background.width() / 3 - 1);
-  background.addch(0, background.width() / 3, ACS_TTEE);
-  background.addch(background.height() - 1, background.width() / 3, ACS_BTEE);
-  background.addch(2 * background.height() / 3, background.width() / 3, ACS_LTEE);
-  background.addch(2 * background.height() / 3, background.width() - 1, ACS_RTEE);
-
-  /* Create the top menu. */
-  TopMenu* pTopMenu = new TopMenu(pSocket);
-
-  /* Create the contacts panel. */
-  NCursesPanel* pContactsPanel =
-    new NCursesPanel(background.height() - 2, background.width() / 3 - 1, 1, 1);
-  pContactsPanel->boldframe("Contacts");
-
-  /* Create chat history panel. */
-  NCursesPanel* pHistoryPanel =
-    new NCursesPanel(2 * background.height() / 3 - 1, 2 * background.width() / 3 - 1, 1, background.width() / 3 + 1);
-  pHistoryPanel->boldframe("History");
-
-  /* Create current message panel. */
-  NCursesPanel* pMessagePanel =
-    new NCursesPanel(background.height() / 3 - 1, 2 * background.width() / 3 - 1, 2 * background.height() / 3 + 1, background.width() / 3 + 1);
-  pMessagePanel->boldframe("Message");
-
-  background.refresh();
+  pBackground->refresh();
   pTopMenu->post();
   pTopMenu->show();
   pTopMenu->refresh();
@@ -61,8 +71,8 @@ void NCWindow::run() {
   /* DBG: Set up buffer for receiving messages from the server. */
   char* buffer = new char[1024]();
   bool logout = false;
-  bool quit = false;
-  while (!logout && !quit) {
+  bool exit = false;
+  while (!logout && !exit) {
     /*
      * Prepare for the select() call that should intercept socket and
      * keyboard events.
@@ -75,7 +85,7 @@ void NCWindow::run() {
       pTopMenu->handleKey();
       //pTopMenu->operator()();
       logout = pTopMenu->getLogoutStatus();
-      quit = pTopMenu->getQuitStatus();
+      exit = pTopMenu->getExitStatus();
     }
     if (FD_ISSET(socketFD, &fileDescriptors)) {
       /* message processing similar to the server process */
@@ -95,6 +105,9 @@ void NCWindow::run() {
 	    std::string requestedUsername = buffer;
 	    FindUserDialog findUserResponse(serverResponse, requestedUsername);
 	    findUserResponse.run();
+
+	    /* Add the contact entry to the contacts panel. */
+	    addContact(requestedUsername);
 	  }
       }
     }
@@ -103,10 +116,9 @@ void NCWindow::run() {
   pTopMenu->unpost();
   pTopMenu->hide();
   pTopMenu->refresh();
-  delete pTopMenu;
-  delete pContactsPanel;
-  delete pHistoryPanel;
-  delete pMessagePanel;
-  background.clear();
-  background.refresh();
+  pBackground->clear();
+  pBackground->refresh();
+}
+
+void NCWindow::addContact(const std::string& username) {
 }

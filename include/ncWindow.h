@@ -2,6 +2,7 @@
 #define NCWINDOW_H
 
 #include "socket.h"
+#include "topMenu.h"
 
 /*
  * This class will represent the main window presented to the user
@@ -14,9 +15,22 @@
  */
 class NCWindow {
   Socket* pSocket;
+  TopMenu* pTopMenu;
+  NCursesPanel* pBackground;
+  NCursesPanel* pContactsPanel;
+  NCursesPanel* pHistoryPanel;
+  NCursesPanel* pMessagePanel;
   public:
-  NCWindow(Socket* pSock) : pSocket(pSock) { };
+  NCWindow(Socket* pSock);
+  ~NCWindow() {
+    delete pBackground;
+    delete pTopMenu;
+    delete pContactsPanel;
+    delete pHistoryPanel;
+    delete pMessagePanel;
+  }
   void run();
+  void addContact(const std::string& username);
 };
 
 #endif	// NCWINDOW_H
