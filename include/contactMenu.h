@@ -25,8 +25,8 @@ class ContactMenu : public NCursesMenu {
   enum { nItems = 4 };
 
   public:
-  ContactMenu(const std::string& username) :
-    NCursesMenu(1, username.length() + 2 + 7 * nItems + 2, 0, 0), paItems(0)
+  ContactMenu(const std::string& username, int position) :
+    NCursesMenu(1, username.length() + 2 + 7 * nItems + 2, 2 + position, 2), paItems(0)
   {
     paItems = new NCursesMenuItem*[1 + nItems];
     paItems[0] = new NCursesMenuItem(username.c_str());
@@ -47,8 +47,8 @@ class SentContactRequest : public NCursesMenu {
   enum { nItems = 2 };
 
   public:
-  SentContactRequest(const std::string& username) :
-    NCursesMenu(1, username.length() + 2 + 7 * nItems + 2, 2, 2), paItems(0)
+  SentContactRequest(const std::string& username, int position) :
+    NCursesMenu(1, username.length() + 2 + 7 * nItems + 2, 2 + position, 2), paItems(0)
   {
     paItems = new NCursesMenuItem*[1 + nItems];
     paItems[0] = new NCursesMenuItem(username.c_str());
@@ -59,6 +59,7 @@ class SentContactRequest : public NCursesMenu {
     InitMenu(paItems, false, true);
     set_format(1, nItems);
   }
+  ~SentContactRequest() { }
 };
 
 class ReceivedContactRequest : public NCursesMenu {
@@ -67,8 +68,8 @@ class ReceivedContactRequest : public NCursesMenu {
   enum { nItems = 3 };
 
   public:
-  ReceivedContactRequest(const std::string& username) :
-    NCursesMenu(1, username.length() + 2 + 7 * nItems + 2, 0, 0), paItems(0)
+  ReceivedContactRequest(const std::string& username, int position) :
+    NCursesMenu(1, username.length() + 2 + 7 * nItems + 2, 2 + position, 2), paItems(0)
   {
     paItems = new NCursesMenuItem*[1 + nItems];
     paItems[0] = new NCursesMenuItem(username.c_str());

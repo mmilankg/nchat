@@ -44,17 +44,15 @@ NCWindow::NCWindow(Socket* pSock) : pSocket(pSock) {
       2 * pBackground->height() / 3 + 1,
       pBackground->width() / 3 + 1);
   pMessagePanel->boldframe("Message");
+
+  /* Create menu for each user in the list of contacts. */
+  for (std::vector<Contact>::iterator it = contacts.begin(); it != contacts.end(); it++) {
+    ContactMenu* pContactMenu = new ContactMenu(it->getUsername(), vpContactMenus.size());
+    vpContactMenus.push_back(pContactMenu);
+  }
 }
 
 void NCWindow::run() {
-  // vector of contacts
-  std::vector<Contact> contacts;
-  /* Create menu for each user in the list of contacts. */
-  std::vector<ContactMenu*> vpContactMenus;
-  for (std::vector<Contact>::iterator it = contacts.begin(); it != contacts.end(); it++) {
-    ContactMenu* pContactMenu = new ContactMenu(it->getUsername());
-    vpContactMenus.push_back(pContactMenu);
-  }
 
   pBackground->refresh();
   pTopMenu->post();
@@ -131,9 +129,10 @@ void NCWindow::addContact(const std::string& username, int origin) {
    */
   NCursesMenu* pContact;
   if (origin == 0)
-    pContact = new ReceivedContactRequest(username);
+    pContact = new ReceivedContactRequest(username, vpContactMenus.size());
   else
-    pContact = new SentContactRequest(username);
+    pContact = new SentContactRequest(username, vpContactMenus.size());
+  vpContactMenus.push_back(pContact);
   pContact->post();
   pContact->show();
   pContact->refresh();

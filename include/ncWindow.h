@@ -3,6 +3,7 @@
 
 #include "socket.h"
 #include "topMenu.h"
+#include "user.h"
 
 /*
  * This class will represent the main window presented to the user
@@ -20,6 +21,11 @@ class NCWindow {
   NCursesPanel* pContactsPanel;
   NCursesPanel* pHistoryPanel;
   NCursesPanel* pMessagePanel;
+  // vector of contacts
+  std::vector<Contact> contacts;
+  // vector of pointers to contact entries in the panel
+  std::vector<NCursesMenu*> vpContactMenus;
+
   public:
   NCWindow(Socket* pSock);
   ~NCWindow() {
@@ -28,8 +34,17 @@ class NCWindow {
     delete pContactsPanel;
     delete pHistoryPanel;
     delete pMessagePanel;
+    for (std::vector<NCursesMenu*>::iterator it = vpContactMenus.begin(); it != vpContactMenus.end(); it++) {
+      (*it)->unpost();
+      (*it)->hide();
+      (*it)->refresh();
+      delete *it;
+    }
   }
+
   void run();
+
+  private:
   void addContact(const std::string& username, int origin);
 };
 
