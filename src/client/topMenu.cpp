@@ -60,19 +60,18 @@ ContactRequestReturnDialog::ContactRequestReturnDialog(
 static const int CMD_QUIT   = MAX_COMMAND + 1;
 static const int CMD_ACTION = MAX_COMMAND + 2;
 
-void TopMenu::handleKey() {
+void TopMenu::handleKey(int key) {
   // copied from cursesm.cc in ncurses-5.9 distribution
   int err;
   bool bAction;
-  int c = getKey();
-  int driverCommand = virtualize(c);
+  int driverCommand = virtualize(key);
 
   switch ((err = driver(driverCommand))) {
     case E_REQUEST_DENIED:
-      On_Request_Denied(c);
+      On_Request_Denied(key);
       break;
     case E_NOT_SELECTABLE:
-      On_Not_Selectable(c);
+      On_Not_Selectable(key);
       break;
     case E_UNKNOWN_COMMAND:
       if (driverCommand == CMD_ACTION) {
@@ -85,7 +84,7 @@ void TopMenu::handleKey() {
 	      refresh();
 	    }
 	  else
-	    On_Not_Selectable(c);
+	    On_Not_Selectable(key);
 	}
 	else {
 	  int n = count();
@@ -98,10 +97,10 @@ void TopMenu::handleKey() {
 	  }
 	}
       } else
-	On_Unknown_Command(c);
+	On_Unknown_Command(key);
       break;
     case E_NO_MATCH:
-      On_No_Match(c);
+      On_No_Match(key);
       break;
     case E_OK:
       break;

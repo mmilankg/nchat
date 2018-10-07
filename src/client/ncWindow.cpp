@@ -80,7 +80,8 @@ void NCWindow::run() {
     FD_SET(socketFD, &fileDescriptors);
     select(nSockets + 1, &fileDescriptors, 0, 0, 0);
     if (FD_ISSET(stdinFD, &fileDescriptors)) {
-      pTopMenu->handleKey();
+      int key = getch();
+      pTopMenu->handleKey(key);
       //pTopMenu->operator()();
       logout = pTopMenu->getLogoutStatus();
       exit = pTopMenu->getExitStatus();
