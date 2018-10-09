@@ -14,9 +14,6 @@ WFLAGS		+= -Wall -pedantic
 vpath %.h $(include_dirs)
 
 CXX	:= g++
-MV	:= mv -f
-RM	:= rm -f
-SED	:= sed
 
 all:
 
@@ -32,13 +29,8 @@ clean:
 	$(RM) $(objects) $(programs) $(dependencies)
 
 ifneq "$(MAKECMDGOALS)" "clean"
-  include $(dependencies)
+  -include $(dependencies)
 endif
 
 %.o: %.cpp
-	$(CXX) -o $@ -c $(CPPFLAGS) $(CXXFLAGS) $(WFLAGS) $<
-
-%.d: %.cpp
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -M $< | \
-	  $(SED) 's,\($(notdir $*)\.o\) *:,$(dir $@)\1 $@: ,' > $@.tmp
-	$(MV) $@.tmp $@
+	$(CXX) -c $< -o $@ -MMD -MP -MF $(patsubst %.o,%.d,$@) $(CPPFLAGS) $(CXXFLAGS) $(WFLAGS)
