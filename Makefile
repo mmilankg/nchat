@@ -34,3 +34,8 @@ endif
 
 %.o: %.cpp
 	$(CXX) -c $< -o $@ -MMD -MP -MF $(patsubst %.o,%.d,$@) $(CPPFLAGS) $(CXXFLAGS) $(WFLAGS)
+
+# compile_commands.json can be generated with "make CXX=clang++"
+.PHONY: compile_commands.json
+compile_commands.json:
+	@$(MAKE) -n -B | grep "^$(CXX) -c" | ./convert-to-compile-commands.sh > compile_commands.json
