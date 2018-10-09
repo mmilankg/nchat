@@ -9,4 +9,4 @@ sources		+= $(local_src)
 LDFLAGS_SRV	:= -lrt -lpthread -lcrypt
 
 $(local_prog): $(common_objs) $(local_objs)
-	$(CXX) -o $@ $(LDFLAGS_SRV) $^
+	$(CXX) -o $@ $^ $(LDFLAGS_SRV)
