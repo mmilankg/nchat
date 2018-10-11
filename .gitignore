@@ -14,3 +14,5 @@ ncClient
 nchatUsers
 # Exclude the gdb history file.
 .gdb_history
+# Exclude compile_commands.json
+compile_commands.json
