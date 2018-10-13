@@ -1,6 +1,7 @@
 #include "message.h"
 #include "socket.h"
 #include <unistd.h>
+#include <cassert>
 #include <cstring>
 #include <string>
 #include <sstream>
@@ -16,6 +17,7 @@
  */
 Socket::Socket(const std::string & hostName, int port, int bs) : bufSize(bs)
 {
+    int             ret; // placeholder for return values of various system functions
     struct addrinfo hints;
     std::memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family   = AF_UNSPEC;   // for allowing IPv4 or IPv6
@@ -31,25 +33,22 @@ Socket::Socket(const std::string & hostName, int port, int bs) : bufSize(bs)
     const char *      pHostName = hostName.c_str();
     if (hostName == "") pHostName = NULL;
     std::string sPort = std::to_string(port);
-    /* DBG: try-catch! */
-    getaddrinfo(pHostName, sPort.c_str(), &hints, &pResult);
+    ret               = getaddrinfo(pHostName, sPort.c_str(), &hints, &pResult);
+    assert(ret == 0);
     for (struct addrinfo * pR = pResult; pR != NULL; pR = pR->ai_next) {
-        /* DBG: try-catch! */
         sfd = socket(pR->ai_family, pR->ai_socktype, pR->ai_protocol);
-        if (sfd == -1) continue;
+        assert(sfd != -1);
         if (hostName == "") {
-            /* DBG: try-catch! */
-            if (bind(sfd, pR->ai_addr, pR->ai_addrlen) == 0) {
-                std::memcpy(&networkAddress, pR->ai_addr, sizeof(struct sockaddr));
-                break;
-            }
+            ret = bind(sfd, pR->ai_addr, pR->ai_addrlen);
+            assert(ret == 0);
+            std::memcpy(&networkAddress, pR->ai_addr, sizeof(struct sockaddr));
+            break;
         }
         else {
-            /* DBG: try-catch! */
-            if (connect(sfd, pR->ai_addr, pR->ai_addrlen) != -1) {
-                std::memcpy(&networkAddress, pR->ai_addr, sizeof(struct sockaddr));
-                break;
-            }
+            ret = connect(sfd, pR->ai_addr, pR->ai_addrlen);
+            assert(ret == 0);
+            std::memcpy(&networkAddress, pR->ai_addr, sizeof(struct sockaddr));
+            break;
         }
     }
     // Release the resulting struct.
@@ -57,8 +56,8 @@ Socket::Socket(const std::string & hostName, int port, int bs) : bufSize(bs)
     if (hostName == "") {
         // maximum number of pending connections (from man listen)
         int backlog = 100;
-        /* DBG: try-catch! */
-        listen(sfd, backlog);
+        ret         = listen(sfd, backlog);
+        assert(ret == 0);
     }
 
     // Allocate buffer memory.
@@ -69,8 +68,8 @@ Socket & Socket::acceptConnection()
 {
     struct sockaddr clientAddress;
     socklen_t       clientAddressSize = sizeof(clientAddress);
-    /* DBG: try-catch! */
-    int      cfd                  = accept(sfd, &clientAddress, &clientAddressSize);
+    int             cfd               = accept(sfd, &clientAddress, &clientAddressSize);
+    assert(cfd != -1);
     Socket * pCommunicationSocket = new Socket();
     pCommunicationSocket->setSfd(cfd);
     pCommunicationSocket->bufSize = bufSize;
