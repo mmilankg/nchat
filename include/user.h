@@ -7,84 +7,88 @@
 #include <vector>
 
 // enumerated list defining user status
-enum Status {
-  online,
-  busy,
-  offline
-};
+enum Status { online, busy, offline };
 
 // user properties found in the file listing all users
 class User {
-  int userID;
-  std::string username;
-  std::string name;
-  std::string encryptedPassword;
-  // address of the Socket object through which the user is connected
-  Socket* clientSocket;
-  Status status;
-  std::vector<int> contactIDs;
-  std::vector<int> sentContactRequestIDs;
-  std::vector<int> receivedContactRequestIDs;
+    int         userID;
+    std::string username;
+    std::string name;
+    std::string encryptedPassword;
+    // address of the Socket object through which the user is connected
+    Socket *         clientSocket;
+    Status           status;
+    std::vector<int> contactIDs;
+    std::vector<int> sentContactRequestIDs;
+    std::vector<int> receivedContactRequestIDs;
 
-  public:
-  User() : userID(0), clientSocket(0), status(offline) { }
-  User(
-      int uid,
-      const std::string& uname,
-      const std::string& nm,
-      const std::string& pwd,
-      Socket* pSocket,
-      Status st,
-      const std::string& contacts,
-      const std::string& sentContactRequests,
-      const std::string& receivedContactRequests) :
-    userID(uid), username(uname), name(nm), encryptedPassword(pwd), clientSocket(pSocket), status(st)
-  {
-    std::istringstream contactStream(contacts);
-    std::istringstream sentContactRequestStream(sentContactRequests);
-    std::istringstream receivedContactRequestStream(receivedContactRequests);
-    std::string field;
-    while (getline(contactStream, field, ',')) {
-      int contactID = atoi(field.c_str());
-      contactIDs.push_back(contactID);
+public:
+    User() : userID(0), clientSocket(0), status(offline) {}
+    User(int                 uid,
+         const std::string & uname,
+         const std::string & nm,
+         const std::string & pwd,
+         Socket *            pSocket,
+         Status              st,
+         const std::string & contacts,
+         const std::string & sentContactRequests,
+         const std::string & receivedContactRequests) :
+        userID(uid),
+        username(uname),
+        name(nm),
+        encryptedPassword(pwd),
+        clientSocket(pSocket),
+        status(st)
+    {
+        std::istringstream contactStream(contacts);
+        std::istringstream sentContactRequestStream(sentContactRequests);
+        std::istringstream receivedContactRequestStream(receivedContactRequests);
+        std::string        field;
+        while (getline(contactStream, field, ',')) {
+            int contactID = atoi(field.c_str());
+            contactIDs.push_back(contactID);
+        }
+        while (getline(sentContactRequestStream, field, ',')) {
+            int sentContactRequestID = atoi(field.c_str());
+            sentContactRequestIDs.push_back(sentContactRequestID);
+        }
+        while (getline(receivedContactRequestStream, field, ',')) {
+            int receivedContactRequestID = atoi(field.c_str());
+            receivedContactRequestIDs.push_back(receivedContactRequestID);
+        }
     }
-    while (getline(sentContactRequestStream, field, ',')) {
-      int sentContactRequestID = atoi(field.c_str());
-      sentContactRequestIDs.push_back(sentContactRequestID);
+    User(const User & u) :
+        userID(u.userID),
+        username(u.username),
+        name(u.name),
+        encryptedPassword(u.encryptedPassword),
+        clientSocket(u.clientSocket),
+        status(u.status),
+        contactIDs(u.contactIDs),
+        sentContactRequestIDs(u.sentContactRequestIDs),
+        receivedContactRequestIDs(u.receivedContactRequestIDs)
+    {
     }
-    while (getline(receivedContactRequestStream, field, ',')) {
-      int receivedContactRequestID = atoi(field.c_str());
-      receivedContactRequestIDs.push_back(receivedContactRequestID);
-    }
-  }
-  User(const User& u) :
-    userID(u.userID), username(u.username), name(u.name),
-    encryptedPassword(u.encryptedPassword),
-    clientSocket(u.clientSocket), status(u.status),
-    contactIDs(u.contactIDs),
-    sentContactRequestIDs(u.sentContactRequestIDs),
-    receivedContactRequestIDs(u.receivedContactRequestIDs)
-  { }
-  virtual ~User() { }
+    virtual ~User() {}
 
-  int getUserID() const { return userID; }
-  void setUserID(int uid) { userID = uid; }
-  const std::string& getUsername() const { return username; }
-  void setUsername(const std::string& uname) { username = uname; }
-  const std::string& getName() const { return name; }
-  void setName(const std::string& nm) { name = nm; }
-  const std::string& getPassword() const { return encryptedPassword; }
-  void setPassword(const std::string& pwd) { encryptedPassword = pwd; }
-  Socket* getClientSocket() { return clientSocket; }
-  void setClientSocket(Socket* pSocket) { clientSocket = pSocket; }
-  Status getStatus() const { return status; }
-  void setStatus(Status st) { status = st; }
-  const std::vector<int>& getContactIDs() const { return contactIDs; }
-  void setContactIDs(const std::vector<int>& cids) { contactIDs = cids; }
-  std::vector<int>& getSentContactRequestIDs() { return sentContactRequestIDs; }
-  void setSentContactRequestIDs(const std::vector<int>& crids) { sentContactRequestIDs = crids; }
-  std::vector<int>& getReceivedContactRequestIDs() { return receivedContactRequestIDs; }
-  void setReceivedContactRequestIDs(const std::vector<int>& crids) { receivedContactRequestIDs = crids; }
+    int                      getUserID() const { return userID; }
+    void                     setUserID(int uid) { userID = uid; }
+    const std::string &      getUsername() const { return username; }
+    void                     setUsername(const std::string & uname) { username = uname; }
+    const std::string &      getName() const { return name; }
+    void                     setName(const std::string & nm) { name = nm; }
+    const std::string &      getPassword() const { return encryptedPassword; }
+    void                     setPassword(const std::string & pwd) { encryptedPassword = pwd; }
+    Socket *                 getClientSocket() { return clientSocket; }
+    void                     setClientSocket(Socket * pSocket) { clientSocket = pSocket; }
+    Status                   getStatus() const { return status; }
+    void                     setStatus(Status st) { status = st; }
+    const std::vector<int> & getContactIDs() const { return contactIDs; }
+    void                     setContactIDs(const std::vector<int> & cids) { contactIDs = cids; }
+    std::vector<int> &       getSentContactRequestIDs() { return sentContactRequestIDs; }
+    void                     setSentContactRequestIDs(const std::vector<int> & crids) { sentContactRequestIDs = crids; }
+    std::vector<int> &       getReceivedContactRequestIDs() { return receivedContactRequestIDs; }
+    void setReceivedContactRequestIDs(const std::vector<int> & crids) { receivedContactRequestIDs = crids; }
 };
 
 // stripped down class for representing a user as a contact of another user
@@ -92,26 +96,24 @@ class User {
  * from the User class.  A better approach would be to have one as a base class
  * and have the other inherit from it. */
 class Contact {
-  int userID;
-  std::string username;
-  std::string name;
-  Status status;
+    int         userID;
+    std::string username;
+    std::string name;
+    Status      status;
 
-  public:
-  Contact() : userID(0) { }
-  Contact(const Contact& c) :
-    userID(c.userID), username(c.username), name(c.name), status(c.status)
-  { }
-  virtual ~Contact() { }
+public:
+    Contact() : userID(0) {}
+    Contact(const Contact & c) : userID(c.userID), username(c.username), name(c.name), status(c.status) {}
+    virtual ~Contact() {}
 
-  int getUserID() const { return userID; }
-  void setUserID(int uid) { userID = uid; }
-  const std::string& getUsername() const { return username; }
-  void setUsername(const std::string& uname) { username = uname; }
-  const std::string& getName() const { return name; }
-  void setName(const std::string& nm) { name = nm; }
-  Status getStatus() const { return status; }
-  void setStatus(Status st) { status = st; }
+    int                 getUserID() const { return userID; }
+    void                setUserID(int uid) { userID = uid; }
+    const std::string & getUsername() const { return username; }
+    void                setUsername(const std::string & uname) { username = uname; }
+    const std::string & getName() const { return name; }
+    void                setName(const std::string & nm) { name = nm; }
+    Status              getStatus() const { return status; }
+    void                setStatus(Status st) { status = st; }
 };
 
-#endif	// USER_H
+#endif // USER_H

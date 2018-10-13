@@ -15,37 +15,38 @@
  * is created and its run() function invoked.
  */
 class NCWindow {
-  Socket* pSocket;
-  TopMenu* pTopMenu;
-  NCursesPanel* pBackground;
-  NCursesPanel* pContactsPanel;
-  NCursesPanel* pHistoryPanel;
-  NCursesPanel* pMessagePanel;
-  // vector of contacts
-  std::vector<Contact> contacts;
-  // vector of pointers to contact entries in the panel
-  std::vector<NCursesMenu*> vpContactMenus;
+    Socket *       pSocket;
+    TopMenu *      pTopMenu;
+    NCursesPanel * pBackground;
+    NCursesPanel * pContactsPanel;
+    NCursesPanel * pHistoryPanel;
+    NCursesPanel * pMessagePanel;
+    // vector of contacts
+    std::vector<Contact> contacts;
+    // vector of pointers to contact entries in the panel
+    std::vector<NCursesMenu *> vpContactMenus;
 
-  public:
-  NCWindow(Socket* pSock);
-  ~NCWindow() {
-    delete pBackground;
-    delete pTopMenu;
-    delete pContactsPanel;
-    delete pHistoryPanel;
-    delete pMessagePanel;
-    for (std::vector<NCursesMenu*>::iterator it = vpContactMenus.begin(); it != vpContactMenus.end(); it++) {
-      (*it)->unpost();
-      (*it)->hide();
-      (*it)->refresh();
-      delete *it;
+public:
+    NCWindow(Socket * pSock);
+    ~NCWindow()
+    {
+        delete pBackground;
+        delete pTopMenu;
+        delete pContactsPanel;
+        delete pHistoryPanel;
+        delete pMessagePanel;
+        for (std::vector<NCursesMenu *>::iterator it = vpContactMenus.begin(); it != vpContactMenus.end(); it++) {
+            (*it)->unpost();
+            (*it)->hide();
+            (*it)->refresh();
+            delete *it;
+        }
     }
-  }
 
-  void run();
+    void run();
 
-  private:
-  void addContact(const std::string& username, int origin);
+private:
+    void addContact(const std::string & username, int origin);
 };
 
-#endif	// NCWINDOW_H
+#endif // NCWINDOW_H
