@@ -1,4 +1,5 @@
 #include "process.h"
+#include <cassert>
 
 void Process::bufferToStrings(char * buffer, int bufferLength, std::vector<std::string> & strings) const
 {
@@ -14,4 +15,6 @@ void Process::bufferToStrings(char * buffer, int bufferLength, std::vector<std::
         buf++;
         remainingLength--;
     }
+    // Check the remaining length hasn't become negative.
+    assert(remainingLength == 0);
 }
