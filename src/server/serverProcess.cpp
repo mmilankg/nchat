@@ -1,3 +1,4 @@
+#include "acceptor.h"
 #include "message.h"
 #include "serverProcess.h"
 #include "trace.h"
@@ -73,6 +74,10 @@ int ServerProcess::run()
     /* DBG: Perhaps the buffer address should be a class member.  And it would be good to set the buffer size as a
      * constant element. */
     char * buffer = new char[1024]();
+
+    // Create the Acceptor object for listening to incoming connection requests.
+    Acceptor acceptor(this, &listeningSocket);
+
     while (true) {
         /* Prepare for the select() call so that the listening at a socket doesn't completely block the execution. */
         fd_set socketDescriptors;
@@ -91,8 +96,9 @@ int ServerProcess::run()
         if (FD_ISSET(listeningSocket.getSfd(), &socketDescriptors)) {
             /* DBG: a better way would be for the acceptConnection to return a pointer directly.  That would avoid
              * having to call the copy-constructor. */
-            Socket * pSocket = new Socket(listeningSocket.acceptConnection());
-            clientSockets.push_back(pSocket);
+            // Socket * pSocket = new Socket(listeningSocket.acceptConnection());
+            acceptor.acceptConnection();
+            // clientSockets.push_back(pSocket);
             TRACE(verbosityLevel, "connection accepted")
         }
         // for messages on client sockets
@@ -144,6 +150,11 @@ int ServerProcess::run()
     /* DBG */
     delete[] buffer;
     return 0;
+}
+
+void ServerProcess::createConnection(Socket * pSocket)
+{
+    clientSockets.push_back(pSocket);
 }
 
 void ServerProcess::signup(Socket * clientSocket, const std::vector<std::string> & userDetails)

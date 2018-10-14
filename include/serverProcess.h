@@ -17,6 +17,8 @@ class ServerProcess : public Process {
     std::vector<User> users;
 
     // listening socket
+    /* DBG: Perhaps now that the Acceptor object will be created, it would be better to have the listening socket as a
+     * member of the Acceptor object. */
     Socket listeningSocket;
     // list of client sockets
     std::vector<Socket *> clientSockets;
@@ -28,7 +30,8 @@ class ServerProcess : public Process {
 public:
     ServerProcess();
     ~ServerProcess() {}
-    int run();
+    int  run();
+    void createConnection(Socket * pSocket);
 
 private:
     void signup(Socket * clientSocket, const std::vector<std::string> & userDetails);
