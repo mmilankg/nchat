@@ -1,7 +1,10 @@
 #include "message.h"
 #include "serverProcess.h"
+#include "trace.h"
 #include <signal.h>
 #include <chrono>
+
+extern int verbosityLevel;
 
 ServerProcess::ServerProcess() :
     usersFileName("nchatUsers"),
@@ -14,6 +17,7 @@ ServerProcess::ServerProcess() :
     // Initialize the random distribution object.
     saltDistribution(std::uniform_int_distribution<>(0, 63))
 {
+    TRACE(verbosityLevel, "server process constructor")
     // Open the file for reading and writing in the append mode.
     // usersFile.open(usersFileName.c_str(), std::ios::in | std::ios::out | std::ios::app);
     // Parse the user file line by line.
@@ -22,8 +26,7 @@ ServerProcess::ServerProcess() :
         std::istringstream ss(line);
         std::string        field;
         /*
-         * Parse the selected line field by field.  Fields are separated
-         * by a colon.
+         * Parse the selected line field by field.  Fields are separated by a colon.
          * 1. user id (int)
          * 2. username (string)
          * 3. real name (string)
@@ -51,69 +54,62 @@ ServerProcess::ServerProcess() :
             User(userID, username, name, password, 0, offline, contacts, sentContactRequests, receivedContactRequests));
     }
     /*
-     * Clear the error state flag after reading in order to be able to write to
-     * the file in other functions:
+     * Clear the error state flag after reading in order to be able to write to the file in other functions:
      *
      * https://stackoverflow.com/questions/32435991/how-to-read-and-write-in-file-with-fstream-simultaneously-in-c/32437476#32437476
      */
     usersFile.clear();
+    TRACE(verbosityLevel, "server process constructor completed")
 }
 
 int ServerProcess::run()
 {
-    /*
-     * Ignore the SIGPIPE signal, but later add the functionality to clean
-     * up the client if the connection is broken.
-     */
+    /* Ignore the SIGPIPE signal, but later add the functionality to clean up the client if the connection is broken. */
     struct sigaction signalAction;
     signalAction.sa_handler = SIG_IGN;
     // sigaction(SIGPIPE, &signalAction, 0);
 
     // set up buffer for receiving messages
-    /* DBG: Perhaps the buffer address should be a class member.  And it
-     * would be good to set the buffer size as a constant element. */
+    /* DBG: Perhaps the buffer address should be a class member.  And it would be good to set the buffer size as a
+     * constant element. */
     char * buffer = new char[1024]();
     while (true) {
-        /*
-         * Prepare for the select() call so that the listening at a socket
-         * doesn't completely block the execution.
-         */
+        /* Prepare for the select() call so that the listening at a socket doesn't completely block the execution. */
         fd_set socketDescriptors;
         FD_ZERO(&socketDescriptors);
         int nSockets = listeningSocket.getSfd() + clientSockets.size();
         FD_SET(listeningSocket.getSfd(), &socketDescriptors);
-        for (std::vector<Socket *>::iterator sockIt = clientSockets.begin(); sockIt != clientSockets.end(); sockIt++)
-            FD_SET((*sockIt)->getSfd(), &socketDescriptors);
+        for (auto pSocket : clientSockets) FD_SET(pSocket->getSfd(), &socketDescriptors);
 
         /*
-         * Start the select() function, but only for reading when sockets
-         * are ready.  Set the last value to 0 in order to listen
-         * indefinitely.
+         * Start the select() function, but only for reading when sockets are ready.  Set the last value to 0 in order
+         * to listen indefinitely.
          */
         select(nSockets + 1, &socketDescriptors, 0, 0, 0);
 
         // when listening socket is ready to accept
         if (FD_ISSET(listeningSocket.getSfd(), &socketDescriptors)) {
-            /* DBG: a better way would be for the acceptConnection to return a
-             * pointer directly.  That would avoid having to call the
-             * copy-constructor. */
+            /* DBG: a better way would be for the acceptConnection to return a pointer directly.  That would avoid
+             * having to call the copy-constructor. */
             Socket * pSocket = new Socket(listeningSocket.acceptConnection());
             clientSockets.push_back(pSocket);
+            TRACE(verbosityLevel, "connection accepted")
         }
         // for messages on client sockets
         else {
             // Loop through all client sockets to see if they are selected.
-            std::vector<Socket *>::iterator sockIt;
-            for (sockIt = clientSockets.begin(); sockIt != clientSockets.end(); sockIt++) {
-                Socket * clientSocket   = *sockIt;
-                int      clientSocketFD = clientSocket->getSfd();
+            for (auto clientSocket : clientSockets) {
+                int clientSocketFD = clientSocket->getSfd();
+                assert(clientSocketFD > 0);
                 if (FD_ISSET(clientSocketFD, &socketDescriptors)) {
                     int         messageLength;
                     MessageType messageType;
                     clientSocket->recv(messageLength);
+                    assert(messageLength > 0);
                     clientSocket->recv(messageType);
                     clientSocket->recv(buffer);
                     int contentLength = messageLength - sizeof(messageLength) - sizeof(messageType);
+                    TRACE(verbosityLevel, "message received")
 
                     // Process the message.
                     switch (messageType) {
@@ -137,6 +133,7 @@ int ServerProcess::run()
                     case mFindUser: {
                         std::string requestedUsername = buffer;
                         findUser(clientSocket, requestedUsername);
+                        break;
                     }
                     }
                 }
@@ -152,9 +149,12 @@ int ServerProcess::run()
 void ServerProcess::signup(Socket * clientSocket, const std::vector<std::string> & userDetails)
 {
     // Unpack the name, username and password from the message.
-    std::string name     = userDetails[0];
+    std::string name = userDetails[0];
+    assert(name.length() > 0);
     std::string username = userDetails[1];
+    assert(username.length() > 0);
     std::string password = userDetails[2];
+    assert(password.length() > 0);
 
     int response; // response to the client
     if (checkUsername(username) == 0) {
@@ -175,17 +175,25 @@ void ServerProcess::signup(Socket * clientSocket, const std::vector<std::string>
 void ServerProcess::login(Socket * clientSocket, const std::vector<std::string> & userDetails)
 {
     // Unpack the username and password from the message.
-    std::string                 username = userDetails[0];
-    std::string                 password = userDetails[1];
-    std::vector<User>::iterator userIt;
+    std::string username = userDetails[0];
+    assert(username.length() > 0);
+    std::string password = userDetails[1];
+    assert(password.length() > 0);
+    /*
+     * While the range-based loop seems like a great feature, I decided to leave the iterator approach in this
+     * particular example because this loop is designed to break when the match is found and the last iterator position
+     * is used outside of the loop and has to stay defined when the loop is finished, which probably doesn't happen with
+     * range-based loops.
+     */
+    std::vector<User>::iterator userIterator;
     int                         response;
-    for (userIt = users.begin(); userIt != users.end(); userIt++) {
-        std::string storedUsername = userIt->getUsername();
+    for (userIterator = users.begin(); userIterator != users.end(); userIterator++) {
+        std::string storedUsername = userIterator->getUsername();
         // When the user is found:
         if (username == storedUsername) {
-            // Check the password.  Take the stored password from the database and extract the
-            // first two characters as salt.
-            std::string storedPassword = userIt->getPassword();
+            // Check the password.  Take the stored password from the database and extract the first two characters as
+            // salt.
+            std::string storedPassword = userIterator->getPassword();
             char        salt[2];
             std::memcpy(salt, storedPassword.c_str(), 2);
             char *      encryptedPasswordContents = crypt(password.c_str(), salt);
@@ -200,11 +208,10 @@ void ServerProcess::login(Socket * clientSocket, const std::vector<std::string> 
     }
 
     /*
-     * If the loop finishes without finding the user (iterator == vector.end()), the
-     * username that was sent is wrong as no such user has been found in the system.
-     * Return response 2 to the client.
+     * If the loop finishes without finding the user (iterator == vector.end()), the username that was sent is wrong as
+     * no such user has been found in the system.  Return response 2 to the client.
      */
-    if (userIt == users.end()) response = 2;
+    if (userIterator == users.end()) response = 2;
 
     MessageType messageType   = mLogin;
     int         messageLength = sizeof(messageLength) + sizeof(messageType) + sizeof(response);
@@ -212,26 +219,22 @@ void ServerProcess::login(Socket * clientSocket, const std::vector<std::string> 
     clientSocket->send(messageType);
     clientSocket->send(response);
 
-    /* If the user is logged in, set its status to online and send it the
-     * list of contacts. */
+    /* If the user is logged in, set their status to online and send them the list of contacts. */
     if (response == 0) {
         // Mark the user's status in the list of all users as online.
-        userIt->setStatus(online);
+        userIterator->setStatus(online);
         // Set the client socket for this user.
-        userIt->setClientSocket(clientSocket);
+        userIterator->setClientSocket(clientSocket);
 
         // Send the list of contacts to the user.
-        const std::vector<int> &         contacts = userIt->getContactIDs();
-        std::vector<int>::const_iterator cit;
-        for (cit = contacts.begin(); cit != contacts.end(); cit++) {
-            int                 contactID       = *cit;
+        const std::vector<int> & contacts = userIterator->getContactIDs();
+        for (auto contactID : contacts) {
             const std::string & contactUsername = users[contactID].getUsername();
             const std::string & contactName     = users[contactID].getName();
             Status              contactStatus   = users[contactID].getStatus();
             // Allocate buffer for sending the message to the client.
-            /* DBG: Perhaps this would be more elegant if it was done by a
-             * separate socket function, although there's a danger of having
-             * too many overloaded functions in the socket. */
+            /* DBG: Perhaps this would be more elegant if it was done by a separate socket function, although there's a
+             * danger of having too many overloaded functions in the socket. */
             int         messageLength;
             MessageType messageType = mSendContact;
             messageLength = sizeof(messageLength) + sizeof(messageType) + sizeof(contactID) + contactUsername.length()
@@ -257,36 +260,28 @@ void ServerProcess::login(Socket * clientSocket, const std::vector<std::string> 
 
 void ServerProcess::logout(Socket * clientSocket, const std::string & username)
 {
+    assert(username.length() > 0);
     /*
-     * Set the pointer for this user's client socket as 0, set the user
-     * status as offline, and inform contacts to update their status flags
-     * for the user.
+     * Set the pointer for this user's client socket as 0, set the user status as offline, and inform contacts to update
+     * their status flags for the user.
      */
-    std::vector<User>::iterator userIt;
-    for (userIt = users.begin(); userIt != users.end(); userIt++) {
-        if (username == userIt->getUsername()) {
-            // The user has been found, so update the corresponding fields in
-            // the entry.
-            userIt->setClientSocket(0);
-            userIt->setStatus(offline);
-            // Iterate through the list of contacts and inform other users
-            // that this one has logged out.
-            const std::vector<int> &         rContactIDs = userIt->getContactIDs();
-            std::vector<int>::const_iterator contactsIt;
-            for (contactsIt = rContactIDs.begin(); contactsIt != rContactIDs.end(); contactsIt++) {
-                /* DBG: This is going to be extremely inefficient as it involves
-                 * double loop!  There should be a better way to store user
-                 * objects so that the process ID is retrieved automatically
-                 * with user ID. */
-                std::vector<User>::iterator innerUserIt;
-                for (innerUserIt = users.begin(); innerUserIt != users.end(); innerUserIt++) {
-                    int contactID = innerUserIt->getUserID();
-                    if (contactID == *contactsIt) {
-                        /* If the contact has been found, send it a message about
-                         * the user being logged out. */
+    for (auto user : users) {
+        if (username == user.getUsername()) {
+            // The user has been found, so update the corresponding fields in the entry.
+            user.setClientSocket(0);
+            user.setStatus(offline);
+            // Iterate through the list of contacts and inform other users that this one has logged out.
+            const std::vector<int> & rContactIDs = user.getContactIDs();
+            for (auto contactID : rContactIDs) {
+                /* DBG: This is going to be extremely inefficient as it involves double loop!  There should be a better
+                 * way to store user objects so that the socket FD is retrieved automatically with user ID. */
+                for (auto innerUser : users) {
+                    int innerUserContactID = innerUser.getUserID();
+                    if (innerUserContactID == contactID) {
+                        /* If the contact has been found, send it a message about the user being logged out. */
                         // Get the client socket file descriptor.
-                        Socket * contactSocket = innerUserIt->getClientSocket();
-                        contactSocket->send(mLogout, userIt->getUsername());
+                        Socket * contactSocket = innerUser.getClientSocket();
+                        contactSocket->send(mLogout, user.getUsername());
                         break;
                     }
                 }
@@ -298,55 +293,48 @@ void ServerProcess::logout(Socket * clientSocket, const std::string & username)
 
 int ServerProcess::checkUsername(const std::string & username) const
 {
+    assert(username.length() > 0);
     /*
-     * Iterate through the vector of users and check if a user with the
-     * same name already exists.  If the username is not taken, return 0
-     * to the calling process indicating that the chosen username is
-     * acceptable.  If the name has already been taken, return 1.
+     * Iterate through the vector of users and check if a user with the same name already exists.  If the username is
+     * not taken, return 0 to the calling process indicating that the chosen username is acceptable.  If the name has
+     * already been taken, return 1.
      */
-    std::vector<User>::const_iterator userIt;
-    for (userIt = users.begin(); userIt != users.end(); userIt++) {
-        std::string storedUsername = userIt->getUsername();
-        if (username == storedUsername) break;
+    for (auto user : users) {
+        std::string storedUsername = user.getUsername();
+        // Return 1 if the match was found.
+        if (username == storedUsername) return 1;
     }
     /*
-     * Allow the username (return 0) if the iterator reached the end of
-     * the vector without finding the match.  If the match was found, the
-     * loop is over before reaching the end of the vector.  Return 1 to
-     * indicate that the username has already been taken.
+     * Allow the username (return 0) if the iterator reached the end of the vector without finding the match.  If the
+     * match was found, the the return 1 was already executed and the function never reaches this point.
      */
-    if (userIt == users.end())
-        return 0;
-    else
-        return 1;
+    return 0;
 }
 
 /*
- * This function will receive a reference to the vector of strings in
- * which user data is packed in the following order:
+ * This function will receive a reference to the vector of strings in which user data is packed in the following order:
  * 1. user full name
  * 2. username
  * 3. plain text user password
  */
 void ServerProcess::addUser(Socket * clientSocket, const std::vector<std::string> & userDetails)
 {
-    std::string name     = userDetails[0];
+    std::string name = userDetails[0];
+    assert(name.length() > 0);
     std::string username = userDetails[1];
+    assert(username.length() > 0);
     std::string password = userDetails[2];
+    assert(password.length() > 0);
     /*
-     * The password is still in plain text.  It should be encrypted and
-     * prepended with salt before storing.
+     * The password is still in plain text.  It should be encrypted and prepended with salt before storing.
      *
-     * DBG: Note: it seems to be a bad idea to send passwords unencrypted,
-     * so a suggested improvement to this approach seems to be to send
-     * some key that a client can use to encrypt the password before
-     * sending it to the server.  This would require changing this part of
-     * the function.
+     * DBG: Note: it seems to be a bad idea to send passwords unencrypted, so a suggested improvement to this approach
+     * seems to be to send some key that a client can use to encrypt the password before sending it to the server.  This
+     * would require changing this part of the function.
      */
     const char * saltCandidates = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./";
     char         salt[2];
-    // Create salt from the first two randomly chosen characters from the
-    // set.
+    // Create salt from the first two randomly chosen characters from the set.
     salt[0]                               = saltCandidates[saltDistribution(saltGenerator)];
     salt[1]                               = saltCandidates[saltDistribution(saltGenerator)];
     char *      encryptedPasswordContents = crypt(password.c_str(), salt);
@@ -357,17 +345,14 @@ void ServerProcess::addUser(Socket * clientSocket, const std::vector<std::string
     users.push_back(User(userID, username, name, encryptedPassword, clientSocket, online, "", "", ""));
 
     /*
-     * Add the user to the file listing all users and their contacts.
-     * This should be done with the locking mechanism so that the
-     * process has an exclusive access to the file while the write
-     * operation is ongoing.  This is left for later implementation.
+     * Add the user to the file listing all users and their contacts.  This should be done with the locking mechanism so
+     * that the process has an exclusive access to the file while the write operation is ongoing.  This is left for
+     * later implementation.
      */
     /*
-     * Pack user information into a single line with the following format:
-     * userID:name:username:encryptedPassword:
-     * These are separated by colons.  The last colon is the end of the
-     * line for a new user.  For an existing user, it will be followed by
-     * the list of contacts: comma-separated userIDs.
+     * Pack user information into a single line with the following format: userID:name:username:encryptedPassword:
+     * These are separated by colons.  The last colon is the end of the line for a new user.  For an existing user, it
+     * will be followed by the list of contacts: comma-separated userIDs.
      */
     std::string line = std::to_string(userID) + ":";
     line += username + ":";
@@ -378,23 +363,21 @@ void ServerProcess::addUser(Socket * clientSocket, const std::vector<std::string
 
 void ServerProcess::findUser(Socket * clientSocket, const std::string & requestedUsername)
 {
+    assert(requestedUsername.length() > 0);
     /*
-     * This function is invoked when a user tries to find another user in
-     * order to establish a contact.  The server will try to find the
-     * requested user in its list of all users.
+     * This function is invoked when a user tries to find another user in order to establish a contact.  The server will
+     * try to find the requested user in its list of all users.
      *
-     * If the requested user is found, the server sends the sending user a
-     * message that the contact has been found, and the requested user a
-     * message that asks for the contact to be established.  The User
-     * object for both users will also be updated to include the ID of the
-     * other user in the sentContactRequests field for the sending user
-     * and the receivedContactRequests field for the requested user.
+     * If the requested user is found, the server sends the sending user a message that the contact has been found, and
+     * the requested user a message that asks for the contact to be established.  The User object for both users will
+     * also be updated to include the ID of the other user in the sentContactRequests field for the sending user and the
+     * receivedContactRequests field for the requested user.
      *
-     * If the requested user is not found, the server sends the sending
-     * user a response 1 indicating that the contact hasn't been found.
+     * If the requested user is not found, the server sends the sending user a response 1 indicating that the contact
+     * hasn't been found.
      *
-     * The server doesn't allow a user to request a contact with
-     * themselves and returns a response 2 to indicate that to the client.
+     * The server doesn't allow a user to request a contact with themselves and returns a response 2 to indicate that to
+     * the client.
      */
     int                         serverResponse;
     std::vector<User>::iterator requestedUserIt;
@@ -402,8 +385,7 @@ void ServerProcess::findUser(Socket * clientSocket, const std::string & requeste
         if (requestedUsername == requestedUserIt->getUsername()) {
             // Send the requesting user response 0.
             serverResponse = 0;
-            // The requested user has been found.  Find the sending user from
-            // its socket.
+            // The requested user has been found.  Find the sending user from its socket.
             std::vector<User>::iterator sendingUserIt;
             for (sendingUserIt = users.begin(); sendingUserIt != users.end(); sendingUserIt++)
                 if (clientSocket == sendingUserIt->getClientSocket()) break;
@@ -430,8 +412,7 @@ void ServerProcess::findUser(Socket * clientSocket, const std::string & requeste
         }
     }
 
-    // The requested user hasn't been found.  Send the requesting user
-    // response 1.
+    // The requested user hasn't been found.  Send the requesting user response 1.
     if (requestedUserIt == users.end()) serverResponse = 1;
 
     int messageLength = sizeof(messageLength) + sizeof(mFindUser) + sizeof(serverResponse) + requestedUsername.length();
