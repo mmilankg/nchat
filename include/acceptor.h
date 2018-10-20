@@ -1,29 +1,33 @@
 #ifndef ACCEPTOR_H
 #define ACCEPTOR_H
 
-#include "serverProcess.h"
+#include "observer.h"
 #include "socket.h"
 
 /*
- * An object of the Acceptor class is created by the server process in order to listen to incoming connection requests
- * from the clients.  For an accepted connection, it should produce a connected socket, which is then returned to the
- * server process which uses it to construct an object of the Connection class.
+ * An object of the Acceptor class is created by the server in order to listen to incoming connection requests from the
+ * clients.  For an accepted connection, it should produce a connected socket, which is then returned to the server
+ * which uses it to construct an object of the Connection class.
  */
 class Acceptor {
     // observer of the acceptor
-    ServerProcess * pServerProcess;
-    Socket *        pListeningSocket;
+    /*
+     * This is going to be the only observer, and it's going to be a pointer to the server itself, so it could have been
+     * created as Server *, but this approach with upcasting the pointer to the base Observer class seems to be more
+     * applicable for a general case, and online examples generally work with a whole vector of pointers to objects
+     * derived from the base Observer class.
+     */
+    Observer * pObserver;
+    Socket *   pListeningSocket;
 
 public:
-    Acceptor() : pServerProcess(0), pListeningSocket(0) {}
-    Acceptor(ServerProcess * pServProc, Socket * pListenSock) : pServerProcess(pServProc), pListeningSocket(pListenSock)
-    {
-    }
+    Acceptor() : pObserver(0), pListeningSocket(0) {}
+    Acceptor(Observer * pObs, Socket * pListenSock) : pObserver(pObs), pListeningSocket(pListenSock) {}
     ~Acceptor() {}
     void acceptConnection();
 
 private:
-    void sendSocket(Socket * pClientSocket) { pServerProcess->createConnection(pClientSocket); }
+    void sendSocket(Socket * pClientSocket) { pObserver->react(pClientSocket); }
 };
 
 #endif // ACCEPTOR_H

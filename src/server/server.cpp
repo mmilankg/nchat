@@ -1,13 +1,14 @@
 #include "acceptor.h"
 #include "message.h"
-#include "serverProcess.h"
+#include "server.h"
 #include "trace.h"
 #include <signal.h>
+#include <cassert>
 #include <chrono>
 
 extern int verbosityLevel;
 
-ServerProcess::ServerProcess() :
+Server::Server() :
     usersFileName("nchatUsers"),
     // Open the file for reading and writing in the append mode.
     usersFile(usersFileName.c_str(), std::ios::in | std::ios::out | std::ios::app),
@@ -63,7 +64,7 @@ ServerProcess::ServerProcess() :
     TRACE(verbosityLevel, "server process constructor completed")
 }
 
-int ServerProcess::run()
+int Server::run()
 {
     /* Ignore the SIGPIPE signal, but later add the functionality to clean up the client if the connection is broken. */
     struct sigaction signalAction;
@@ -152,12 +153,12 @@ int ServerProcess::run()
     return 0;
 }
 
-void ServerProcess::createConnection(Socket * pSocket)
+void Server::createConnection(Socket * pSocket)
 {
     clientSockets.push_back(pSocket);
 }
 
-void ServerProcess::signup(Socket * clientSocket, const std::vector<std::string> & userDetails)
+void Server::signup(Socket * clientSocket, const std::vector<std::string> & userDetails)
 {
     // Unpack the name, username and password from the message.
     std::string name = userDetails[0];
@@ -183,7 +184,7 @@ void ServerProcess::signup(Socket * clientSocket, const std::vector<std::string>
     clientSocket->send(response);
 }
 
-void ServerProcess::login(Socket * clientSocket, const std::vector<std::string> & userDetails)
+void Server::login(Socket * clientSocket, const std::vector<std::string> & userDetails)
 {
     // Unpack the username and password from the message.
     std::string username = userDetails[0];
@@ -269,7 +270,7 @@ void ServerProcess::login(Socket * clientSocket, const std::vector<std::string> 
     }
 }
 
-void ServerProcess::logout(Socket * clientSocket, const std::string & username)
+void Server::logout(Socket * clientSocket, const std::string & username)
 {
     assert(username.length() > 0);
     /*
@@ -302,7 +303,7 @@ void ServerProcess::logout(Socket * clientSocket, const std::string & username)
     }
 }
 
-int ServerProcess::checkUsername(const std::string & username) const
+int Server::checkUsername(const std::string & username) const
 {
     assert(username.length() > 0);
     /*
@@ -328,7 +329,7 @@ int ServerProcess::checkUsername(const std::string & username) const
  * 2. username
  * 3. plain text user password
  */
-void ServerProcess::addUser(Socket * clientSocket, const std::vector<std::string> & userDetails)
+void Server::addUser(Socket * clientSocket, const std::vector<std::string> & userDetails)
 {
     std::string name = userDetails[0];
     assert(name.length() > 0);
@@ -372,7 +373,7 @@ void ServerProcess::addUser(Socket * clientSocket, const std::vector<std::string
     usersFile << line << std::endl;
 }
 
-void ServerProcess::findUser(Socket * clientSocket, const std::string & requestedUsername)
+void Server::findUser(Socket * clientSocket, const std::string & requestedUsername)
 {
     assert(requestedUsername.length() > 0);
     /*
@@ -431,4 +432,22 @@ void ServerProcess::findUser(Socket * clientSocket, const std::string & requeste
     clientSocket->send(mFindUser);
     clientSocket->send(serverResponse);
     clientSocket->send(requestedUsername);
+}
+
+void Server::bufferToStrings(char * buffer, int bufferLength, std::vector<std::string> & strings) const
+{
+    int    remainingLength = bufferLength;
+    char * buf             = buffer;
+    // Process each string terminated with null-byte until the
+    // remainingLength drops to 0.
+    while (remainingLength > 0) {
+        strings.push_back(buf);
+        buf += strings.back().length();
+        remainingLength -= strings.back().length();
+        // Process the null-byte.
+        buf++;
+        remainingLength--;
+    }
+    // Check the remaining length hasn't become negative.
+    assert(remainingLength == 0);
 }

@@ -1,4 +1,4 @@
-#include "serverProcess.h"
+#include "server.h"
 #include "trace.h"
 #include <getopt.h>
 
@@ -45,8 +45,8 @@ int main(int argc, char * argv[])
 
     if (!helpOption) {
         TRACE(verbosityLevel, "starting server")
-        ServerProcess serverProcess;
+        Server server;
         TRACE(verbosityLevel, "running server")
-        serverProcess.run();
+        server.run();
     }
 }
