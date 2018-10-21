@@ -5,6 +5,9 @@
 #include <cursesm.h>
 #include <cursesf.h>
 
+/* DBG: may be needed in a later implementation. */
+int verbosityLevel = 0;
+
 class NCClient : public NCursesApplication {
     Socket socket;
     /* DBG: The user object is not currently used, but it seems natural

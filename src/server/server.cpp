@@ -110,36 +110,36 @@ void Server::createConnection(Socket * pSocket)
     connections.push_back(pConnection);
 }
 
-void Server::react(Connection * pConnection, MessageType messageType, const std::vector<char> & message)
+void Server::react(Connection * connection, MessageType messageType, const std::vector<char> & message)
 {
     // Process the message.
     switch (messageType) {
     case mSignup: {
         std::vector<std::string> userDetails;
         bufferToStrings(message, userDetails);
-        signup(pConnection->getSocket(), userDetails);
+        signup(connection, userDetails);
         break;
     }
     case mLogin: {
         std::vector<std::string> userDetails;
         bufferToStrings(message, userDetails);
-        login(pConnection->getSocket(), userDetails);
+        login(connection, userDetails);
         break;
     }
     case mLogout: {
         std::string username = message.data();
-        logout(pConnection->getSocket(), username);
+        logout(connection, username);
         break;
     }
     case mFindUser: {
         std::string requestedUsername = message.data();
-        findUser(pConnection->getSocket(), requestedUsername);
+        findUser(connection, requestedUsername);
         break;
     }
     }
 }
 
-void Server::signup(Socket * clientSocket, const std::vector<std::string> & userDetails)
+void Server::signup(Connection * connection, const std::vector<std::string> & userDetails)
 {
     // Unpack the name, username and password from the message.
     std::string name = userDetails[0];
@@ -152,20 +152,17 @@ void Server::signup(Socket * clientSocket, const std::vector<std::string> & user
     int response; // response to the client
     if (checkUsername(username) == 0) {
         response = 0;
-        addUser(clientSocket, userDetails);
+        addUser(connection, userDetails);
     }
     else
         response = 1;
 
     // Return the response to the client.
-    MessageType messageType   = mLogin;
-    int         messageLength = sizeof(messageLength) + sizeof(messageType) + sizeof(response);
-    clientSocket->send(messageLength);
-    clientSocket->send(messageType);
-    clientSocket->send(response);
+    MessageType messageType = mLogin;
+    connection->transmit(messageType, response);
 }
 
-void Server::login(Socket * clientSocket, const std::vector<std::string> & userDetails)
+void Server::login(Connection * connection, const std::vector<std::string> & userDetails)
 {
     // Unpack the username and password from the message.
     std::string username = userDetails[0];
@@ -206,18 +203,15 @@ void Server::login(Socket * clientSocket, const std::vector<std::string> & userD
      */
     if (userIterator == users.end()) response = 2;
 
-    MessageType messageType   = mLogin;
-    int         messageLength = sizeof(messageLength) + sizeof(messageType) + sizeof(response);
-    clientSocket->send(messageLength);
-    clientSocket->send(messageType);
-    clientSocket->send(response);
+    MessageType messageType = mLogin;
+    connection->transmit(messageType, response);
 
     /* If the user is logged in, set their status to online and send them the list of contacts. */
     if (response == 0) {
         // Mark the user's status in the list of all users as online.
         userIterator->setStatus(online);
-        // Set the client socket for this user.
-        userIterator->setClientSocket(clientSocket);
+        // Set the connection for this user.
+        userIterator->setConnection(connection);
 
         // Send the list of contacts to the user.
         const std::vector<int> & contacts = userIterator->getContactIDs();
@@ -226,55 +220,47 @@ void Server::login(Socket * clientSocket, const std::vector<std::string> & userD
             const std::string & contactName     = users[contactID].getName();
             Status              contactStatus   = users[contactID].getStatus();
             // Allocate buffer for sending the message to the client.
-            /* DBG: Perhaps this would be more elegant if it was done by a separate socket function, although there's a
-             * danger of having too many overloaded functions in the socket. */
-            int         messageLength;
-            MessageType messageType = mSendContact;
-            messageLength = sizeof(messageLength) + sizeof(messageType) + sizeof(contactID) + contactUsername.length()
-                            + 1 + contactName.length() + 1 + sizeof(contactStatus);
-            std::vector<char> buffer;
-            buffer.resize(messageLength);
+            MessageType messageType  = mSendContact;
+            int messageContentLength = sizeof(contactID) + contactUsername.length() + 1 + contactName.length() + 1
+                                       + sizeof(contactStatus);
+            std::vector<char> messageContent;
+            messageContent.resize(messageContentLength);
             int nBytesProcessed = 0;
-            std::memcpy(buffer.data(), &messageLength, sizeof(messageLength));
-            nBytesProcessed += sizeof(messageLength);
-            std::memcpy(buffer.data() + nBytesProcessed, &messageType, sizeof(messageType));
-            nBytesProcessed += sizeof(messageType);
-            std::memcpy(buffer.data() + nBytesProcessed, &contactID, sizeof(contactID));
+            std::memcpy(messageContent.data() + nBytesProcessed, &contactID, sizeof(contactID));
             nBytesProcessed += sizeof(contactID);
-            std::memcpy(buffer.data() + nBytesProcessed, contactUsername.c_str(), contactUsername.length());
+            std::memcpy(messageContent.data() + nBytesProcessed, contactUsername.c_str(), contactUsername.length());
             nBytesProcessed += sizeof(contactUsername.length() + 1);
-            std::memcpy(buffer.data() + nBytesProcessed, contactName.c_str(), contactName.length());
+            std::memcpy(messageContent.data() + nBytesProcessed, contactName.c_str(), contactName.length());
             nBytesProcessed += sizeof(contactName.length() + 1);
-            std::memcpy(buffer.data() + nBytesProcessed, &contactStatus, sizeof(contactStatus));
-            clientSocket->send(buffer);
+            std::memcpy(messageContent.data() + nBytesProcessed, &contactStatus, sizeof(contactStatus));
+            connection->transmit(messageType, messageContent);
         }
     }
 }
 
-void Server::logout(Socket * clientSocket, const std::string & username)
+void Server::logout(Connection * connection, const std::string & username)
 {
     assert(username.length() > 0);
     /*
-     * Set the pointer for this user's client socket as 0, set the user status as offline, and inform contacts to update
-     * their status flags for the user.
+     * Set the pointer for this user's connection object as 0, set the user status as offline, and inform contacts to
+     * update their status flags for the user.
      */
     for (auto user : users) {
         if (username == user.getUsername()) {
             // The user has been found, so update the corresponding fields in the entry.
-            user.setClientSocket(0);
+            user.setConnection(0);
             user.setStatus(offline);
             // Iterate through the list of contacts and inform other users that this one has logged out.
             const std::vector<int> & rContactIDs = user.getContactIDs();
             for (auto contactID : rContactIDs) {
                 /* DBG: This is going to be extremely inefficient as it involves double loop!  There should be a better
-                 * way to store user objects so that the socket FD is retrieved automatically with user ID. */
+                 * way to store user objects so that the connection pointer is retrieved automatically with user ID. */
                 for (auto innerUser : users) {
                     int innerUserContactID = innerUser.getUserID();
                     if (innerUserContactID == contactID) {
                         /* If the contact has been found, send it a message about the user being logged out. */
-                        // Get the client socket file descriptor.
-                        Socket * contactSocket = innerUser.getClientSocket();
-                        contactSocket->send(mLogout, user.getUsername());
+                        Connection * innerUserConnection = innerUser.getConnection();
+                        innerUserConnection->transmit(mLogout, user.getUsername());
                         break;
                     }
                 }
@@ -310,7 +296,7 @@ int Server::checkUsername(const std::string & username) const
  * 2. username
  * 3. plain text user password
  */
-void Server::addUser(Socket * clientSocket, const std::vector<std::string> & userDetails)
+void Server::addUser(Connection * connection, const std::vector<std::string> & userDetails)
 {
     std::string name = userDetails[0];
     assert(name.length() > 0);
@@ -335,7 +321,7 @@ void Server::addUser(Socket * clientSocket, const std::vector<std::string> & use
     int         userID = 0;
     if (users.size() > 0) userID = users.back().getUserID() + 1;
     // empty string for contacts as the last argument
-    users.push_back(User(userID, username, name, encryptedPassword, clientSocket, online, "", "", ""));
+    users.push_back(User(userID, username, name, encryptedPassword, connection, online, "", "", ""));
 
     /*
      * Add the user to the file listing all users and their contacts.  This should be done with the locking mechanism so
@@ -354,7 +340,7 @@ void Server::addUser(Socket * clientSocket, const std::vector<std::string> & use
     usersFile << line << std::endl;
 }
 
-void Server::findUser(Socket * clientSocket, const std::string & requestedUsername)
+void Server::findUser(Connection * connection, const std::string & requestedUsername)
 {
     assert(requestedUsername.length() > 0);
     /*
@@ -378,10 +364,10 @@ void Server::findUser(Socket * clientSocket, const std::string & requestedUserna
         if (requestedUsername == requestedUserIt->getUsername()) {
             // Send the requesting user response 0.
             serverResponse = 0;
-            // The requested user has been found.  Find the sending user from its socket.
+            // The requested user has been found.  Find the sending user from its connection pointer.
             std::vector<User>::iterator sendingUserIt;
             for (sendingUserIt = users.begin(); sendingUserIt != users.end(); sendingUserIt++)
-                if (clientSocket == sendingUserIt->getClientSocket()) break;
+                if (connection == sendingUserIt->getConnection()) break;
             // It's not allowed for a user to establish a self-contact.
             if (requestedUserIt == sendingUserIt) {
                 serverResponse = 2;
@@ -393,13 +379,10 @@ void Server::findUser(Socket * clientSocket, const std::string & requestedUserna
             sentContactRequestIDs.push_back(requestedUserID);
             std::vector<int> & receivedContactRequestIDs = requestedUserIt->getReceivedContactRequestIDs();
             receivedContactRequestIDs.push_back(sendingUserID);
-            Socket * requestedUserSocket = requestedUserIt->getClientSocket();
-            if (requestedUserSocket != 0) {
+            Connection * requestedUserConnection = requestedUserIt->getConnection();
+            if (requestedUserConnection != 0) {
                 std::string sendingUsername = sendingUserIt->getUsername();
-                int         messageLength = sizeof(messageLength) + sizeof(mContactRequest) + sendingUsername.length();
-                requestedUserSocket->send(messageLength);
-                requestedUserSocket->send(mContactRequest);
-                requestedUserSocket->send(sendingUsername);
+                requestedUserConnection->transmit(mContactRequest, sendingUsername);
             }
             break;
         }
@@ -408,11 +391,12 @@ void Server::findUser(Socket * clientSocket, const std::string & requestedUserna
     // The requested user hasn't been found.  Send the requesting user response 1.
     if (requestedUserIt == users.end()) serverResponse = 1;
 
-    int messageLength = sizeof(messageLength) + sizeof(mFindUser) + sizeof(serverResponse) + requestedUsername.length();
-    clientSocket->send(messageLength);
-    clientSocket->send(mFindUser);
-    clientSocket->send(serverResponse);
-    clientSocket->send(requestedUsername);
+    int               messageContentLength = sizeof(serverResponse) + requestedUsername.length() + 1;
+    std::vector<char> messageContent;
+    messageContent.resize(messageContentLength);
+    std::memcpy(messageContent.data(), &serverResponse, sizeof(serverResponse));
+    std::memcpy(messageContent.data() + sizeof(serverResponse), requestedUsername.c_str(), requestedUsername.length());
+    connection->transmit(mFindUser, messageContent);
 }
 
 void Server::bufferToStrings(char * buffer, int bufferLength, std::vector<std::string> & strings) const

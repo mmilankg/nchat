@@ -1,7 +1,7 @@
 #ifndef USER_H
 #define USER_H
 
-#include "socket.h"
+#include "connection.h"
 #include <sstream>
 #include <string>
 #include <vector>
@@ -15,20 +15,20 @@ class User {
     std::string username;
     std::string name;
     std::string encryptedPassword;
-    // address of the Socket object through which the user is connected
-    Socket *         clientSocket;
+    // address of the Connection object through which the user is connected
+    Connection *     connection;
     Status           status;
     std::vector<int> contactIDs;
     std::vector<int> sentContactRequestIDs;
     std::vector<int> receivedContactRequestIDs;
 
 public:
-    User() : userID(0), clientSocket(0), status(offline) {}
+    User() : userID(0), connection(0), status(offline) {}
     User(int                 uid,
          const std::string & uname,
          const std::string & nm,
          const std::string & pwd,
-         Socket *            pSocket,
+         Connection *        conn,
          Status              st,
          const std::string & contacts,
          const std::string & sentContactRequests,
@@ -37,7 +37,7 @@ public:
         username(uname),
         name(nm),
         encryptedPassword(pwd),
-        clientSocket(pSocket),
+        connection(conn),
         status(st)
     {
         std::istringstream contactStream(contacts);
@@ -62,7 +62,7 @@ public:
         username(u.username),
         name(u.name),
         encryptedPassword(u.encryptedPassword),
-        clientSocket(u.clientSocket),
+        connection(u.connection),
         status(u.status),
         contactIDs(u.contactIDs),
         sentContactRequestIDs(u.sentContactRequestIDs),
@@ -79,8 +79,8 @@ public:
     void                     setName(const std::string & nm) { name = nm; }
     const std::string &      getPassword() const { return encryptedPassword; }
     void                     setPassword(const std::string & pwd) { encryptedPassword = pwd; }
-    Socket *                 getClientSocket() { return clientSocket; }
-    void                     setClientSocket(Socket * pSocket) { clientSocket = pSocket; }
+    Connection *             getConnection() { return connection; }
+    void                     setConnection(Connection * conn) { connection = conn; }
     Status                   getStatus() const { return status; }
     void                     setStatus(Status st) { status = st; }
     const std::vector<int> & getContactIDs() const { return contactIDs; }

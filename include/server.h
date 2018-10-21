@@ -20,8 +20,6 @@ class Server : public Observer {
 
     // Acceptor object
     Acceptor acceptor;
-    // list of client sockets
-    // std::vector<Socket *> clientSockets;
     // Connection objects
     std::vector<Connection *> connections;
 
@@ -39,13 +37,13 @@ public:
     void react(Connection * pConnection, MessageType messageType, const std::vector<char> & message);
 
 private:
-    void signup(Socket * clientSocket, const std::vector<std::string> & userDetails);
-    void login(Socket * clientSocket, const std::vector<std::string> & userDetails);
-    void logout(Socket * clientSocket, const std::string & username);
+    void signup(Connection * connection, const std::vector<std::string> & userDetails);
+    void login(Connection * connection, const std::vector<std::string> & userDetails);
+    void logout(Connection * connection, const std::string & username);
 
     int  checkUsername(const std::string & username) const;
-    void addUser(Socket * clientSocket, const std::vector<std::string> & userDetails);
-    void findUser(Socket * clientSocket, const std::string & username);
+    void addUser(Connection * connection, const std::vector<std::string> & userDetails);
+    void findUser(Connection * connection, const std::string & username);
 
     void bufferToStrings(char * buffer, int bufferLength, std::vector<std::string> & strings) const;
     void bufferToStrings(const std::vector<char> & buffer, std::vector<std::string> & strings) const;
