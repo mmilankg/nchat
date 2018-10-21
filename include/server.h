@@ -53,6 +53,7 @@ private:
     void findUser(Socket * clientSocket, const std::string & username);
 
     void bufferToStrings(char * buffer, int bufferLength, std::vector<std::string> & strings) const;
+    void bufferToStrings(const std::vector<char> & buffer, std::vector<std::string> & strings) const;
 };
 
 #endif // SERVER_H

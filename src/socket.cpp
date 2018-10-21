@@ -139,6 +139,13 @@ void Socket::send(MessageType messageType, const std::vector<std::string> & part
     write(sfd, buffer, messageLength);
 }
 
+void Socket::recv(std::vector<char> & buffer, int count) const
+{
+    buffer.resize(count);
+    int nRead = read(sfd, buffer.data(), count);
+    assert(nRead == count);
+}
+
 void Socket::recv(std::string & text) const
 {
     /* DBG: check the appropriate way to complete reading of a long message! */

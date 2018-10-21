@@ -72,9 +72,8 @@ int Server::run()
     // sigaction(SIGPIPE, &signalAction, 0);
 
     // set up buffer for receiving messages
-    /* DBG: Perhaps the buffer address should be a class member.  And it would be good to set the buffer size as a
-     * constant element. */
-    char * buffer = new char[1024]();
+    /* DBG: Perhaps the buffer address should be a class member. */
+    std::vector<char> buffer;
 
     // Create the Acceptor object for listening to incoming connection requests.
     Acceptor acceptor(this, &listeningSocket);
@@ -114,7 +113,7 @@ int Server::run()
                     clientSocket->recv(messageLength);
                     assert(messageLength > 0);
                     clientSocket->recv(messageType);
-                    clientSocket->recv(buffer);
+                    clientSocket->recv(buffer, messageLength - sizeof(messageLength) - sizeof(messageType));
                     int contentLength = messageLength - sizeof(messageLength) - sizeof(messageType);
                     TRACE(verbosityLevel, "message received")
 
@@ -122,23 +121,23 @@ int Server::run()
                     switch (messageType) {
                     case mSignup: {
                         std::vector<std::string> userDetails;
-                        bufferToStrings(buffer, contentLength, userDetails);
+                        bufferToStrings(buffer, userDetails);
                         signup(clientSocket, userDetails);
                         break;
                     }
                     case mLogin: {
                         std::vector<std::string> userDetails;
-                        bufferToStrings(buffer, contentLength, userDetails);
+                        bufferToStrings(buffer, userDetails);
                         login(clientSocket, userDetails);
                         break;
                     }
                     case mLogout: {
-                        std::string username = buffer;
+                        std::string username = buffer.data();
                         logout(clientSocket, username);
                         break;
                     }
                     case mFindUser: {
-                        std::string requestedUsername = buffer;
+                        std::string requestedUsername = buffer.data();
                         findUser(clientSocket, requestedUsername);
                         break;
                     }
@@ -148,8 +147,6 @@ int Server::run()
         }
     }
 
-    /* DBG */
-    delete[] buffer;
     return 0;
 }
 
@@ -251,21 +248,21 @@ void Server::login(Socket * clientSocket, const std::vector<std::string> & userD
             MessageType messageType = mSendContact;
             messageLength = sizeof(messageLength) + sizeof(messageType) + sizeof(contactID) + contactUsername.length()
                             + 1 + contactName.length() + 1 + sizeof(contactStatus);
-            char * buffer = new char[messageLength]();
-            char * buf    = buffer;
-            std::memcpy(buf, &messageLength, sizeof(messageLength));
-            buf += sizeof(messageLength);
-            std::memcpy(buf, &messageType, sizeof(messageType));
-            buf += sizeof(messageType);
-            std::memcpy(buf, &contactID, sizeof(contactID));
-            buf += sizeof(contactID);
-            std::memcpy(buf, contactUsername.c_str(), contactUsername.length());
-            buf += sizeof(contactUsername.length() + 1);
-            std::memcpy(buf, contactName.c_str(), contactName.length());
-            buf += sizeof(contactName.length() + 1);
-            std::memcpy(buf, &contactStatus, sizeof(contactStatus));
+            std::vector<char> buffer;
+            buffer.resize(messageLength);
+            int nBytesProcessed = 0;
+            std::memcpy(buffer.data(), &messageLength, sizeof(messageLength));
+            nBytesProcessed += sizeof(messageLength);
+            std::memcpy(buffer.data() + nBytesProcessed, &messageType, sizeof(messageType));
+            nBytesProcessed += sizeof(messageType);
+            std::memcpy(buffer.data() + nBytesProcessed, &contactID, sizeof(contactID));
+            nBytesProcessed += sizeof(contactID);
+            std::memcpy(buffer.data() + nBytesProcessed, contactUsername.c_str(), contactUsername.length());
+            nBytesProcessed += sizeof(contactUsername.length() + 1);
+            std::memcpy(buffer.data() + nBytesProcessed, contactName.c_str(), contactName.length());
+            nBytesProcessed += sizeof(contactName.length() + 1);
+            std::memcpy(buffer.data() + nBytesProcessed, &contactStatus, sizeof(contactStatus));
             clientSocket->send(buffer);
-            delete[] buffer;
         }
     }
 }
@@ -450,4 +447,13 @@ void Server::bufferToStrings(char * buffer, int bufferLength, std::vector<std::s
     }
     // Check the remaining length hasn't become negative.
     assert(remainingLength == 0);
+}
+
+void Server::bufferToStrings(const std::vector<char> & buffer, std::vector<std::string> & strings) const
+{
+    int nBytesProcessed = 0;
+    while (nBytesProcessed < buffer.size()) {
+        strings.push_back(buffer.data() + nBytesProcessed);
+        nBytesProcessed += strings.back().length() + 1;
+    }
 }

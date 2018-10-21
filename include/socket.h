@@ -49,12 +49,15 @@ public:
     {
         // Delete the buffer if its memory has been allocated (bufSize > 0).
         if (bufSize > 0) delete buffer;
+        // Close the socket descriptor.
+        close(sfd);
     }
     int  getSfd() const { return sfd; }
     void setSfd(int fd) { sfd = fd; }
     /* DBG: There seem to be too many different versions of send and recv
      * functions.  Is that considered a bad practice? */
     virtual void send(const char * buf) const { write(sfd, buf, bufSize); }
+    virtual void send(const std::vector<char> & buffer) const { write(sfd, buffer.data(), buffer.size()); }
     virtual void send(const std::string & text) const
     {
         // Terminate with 0.
@@ -66,6 +69,7 @@ public:
     virtual void send(MessageType messageType, const std::vector<std::string> & parts);
 
     virtual void     recv(char * buf) const { read(sfd, buf, bufSize); }
+    virtual void     recv(std::vector<char> & buffer, int count) const;
     virtual void     recv(std::string & text) const;
     virtual void     recv(int & num) const { read(sfd, &num, sizeof(num)); }
     virtual void     recv(MessageType & messageType) const { read(sfd, &messageType, sizeof(messageType)); }
