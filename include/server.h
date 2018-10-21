@@ -36,7 +36,7 @@ public:
     void createConnection(Socket * pSocket);
     // overriding the react() functions of the Observer base class
     void react(Socket * pSocket) { createConnection(pSocket); }
-    void react(const std::vector<char> & message) { /* DBG: placeholder (implement later) */}
+    void react(Connection * pConnection, MessageType messageType, const std::vector<char> & message);
 
 private:
     void signup(Socket * clientSocket, const std::vector<std::string> & userDetails);

@@ -71,10 +71,6 @@ int Server::run()
     signalAction.sa_handler = SIG_IGN;
     // sigaction(SIGPIPE, &signalAction, 0);
 
-    // set up buffer for receiving messages
-    /* DBG: Perhaps the buffer address should be a class member. */
-    std::vector<char> buffer;
-
     while (true) {
         /* Prepare for the select() call so that the listening at a socket doesn't completely block the execution. */
         fd_set socketDescriptors;
@@ -98,45 +94,9 @@ int Server::run()
         else {
             // Loop through all connections to see if their client sockets are selected.
             for (auto connection : connections) {
-                Socket * clientSocket   = connection->getSocket();
-                int      clientSocketFD = connection->getSfd();
+                int clientSocketFD = connection->getSfd();
                 assert(clientSocketFD > 0);
-                if (FD_ISSET(clientSocketFD, &socketDescriptors)) {
-                    int         messageLength;
-                    MessageType messageType;
-                    clientSocket->recv(messageLength);
-                    assert(messageLength > 0);
-                    clientSocket->recv(messageType);
-                    clientSocket->recv(buffer, messageLength - sizeof(messageLength) - sizeof(messageType));
-                    int contentLength = messageLength - sizeof(messageLength) - sizeof(messageType);
-                    TRACE(verbosityLevel, "message received")
-
-                    // Process the message.
-                    switch (messageType) {
-                    case mSignup: {
-                        std::vector<std::string> userDetails;
-                        bufferToStrings(buffer, userDetails);
-                        signup(clientSocket, userDetails);
-                        break;
-                    }
-                    case mLogin: {
-                        std::vector<std::string> userDetails;
-                        bufferToStrings(buffer, userDetails);
-                        login(clientSocket, userDetails);
-                        break;
-                    }
-                    case mLogout: {
-                        std::string username = buffer.data();
-                        logout(clientSocket, username);
-                        break;
-                    }
-                    case mFindUser: {
-                        std::string requestedUsername = buffer.data();
-                        findUser(clientSocket, requestedUsername);
-                        break;
-                    }
-                    }
-                }
+                if (FD_ISSET(clientSocketFD, &socketDescriptors)) connection->receive();
             }
         }
     }
@@ -148,6 +108,35 @@ void Server::createConnection(Socket * pSocket)
 {
     Connection * pConnection = new Connection(this, pSocket);
     connections.push_back(pConnection);
+}
+
+void Server::react(Connection * pConnection, MessageType messageType, const std::vector<char> & message)
+{
+    // Process the message.
+    switch (messageType) {
+    case mSignup: {
+        std::vector<std::string> userDetails;
+        bufferToStrings(message, userDetails);
+        signup(pConnection->getSocket(), userDetails);
+        break;
+    }
+    case mLogin: {
+        std::vector<std::string> userDetails;
+        bufferToStrings(message, userDetails);
+        login(pConnection->getSocket(), userDetails);
+        break;
+    }
+    case mLogout: {
+        std::string username = message.data();
+        logout(pConnection->getSocket(), username);
+        break;
+    }
+    case mFindUser: {
+        std::string requestedUsername = message.data();
+        findUser(pConnection->getSocket(), requestedUsername);
+        break;
+    }
+    }
 }
 
 void Server::signup(Socket * clientSocket, const std::vector<std::string> & userDetails)
