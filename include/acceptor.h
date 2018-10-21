@@ -18,13 +18,14 @@ class Acceptor {
      * derived from the base Observer class.
      */
     Observer * pObserver;
-    Socket *   pListeningSocket;
+    Socket     listeningSocket;
 
 public:
-    Acceptor() : pObserver(0), pListeningSocket(0) {}
-    Acceptor(Observer * pObs, Socket * pListenSock) : pObserver(pObs), pListeningSocket(pListenSock) {}
+    /* Passing an empty string sets up a listening socket. */
+    Acceptor(Observer * pObs) : pObserver(pObs), listeningSocket("") {}
     ~Acceptor() {}
     void acceptConnection();
+    int  getSfd() { return listeningSocket.getSfd(); }
 
 private:
     void sendSocket(Socket * pClientSocket) { pObserver->react(pClientSocket); }

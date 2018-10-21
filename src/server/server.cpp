@@ -12,8 +12,8 @@ Server::Server() :
     usersFileName("nchatUsers"),
     // Open the file for reading and writing in the append mode.
     usersFile(usersFileName.c_str(), std::ios::in | std::ios::out | std::ios::app),
-    // passing an empty string sets up the listening socket
-    listeningSocket(""),
+    // Create the Acceptor object for listening to incoming connection requests.
+    acceptor(this),
     // Initialize the salt generator using the current time.
     saltGenerator(std::chrono::system_clock::now().time_since_epoch().count()),
     // Initialize the random distribution object.
@@ -75,16 +75,13 @@ int Server::run()
     /* DBG: Perhaps the buffer address should be a class member. */
     std::vector<char> buffer;
 
-    // Create the Acceptor object for listening to incoming connection requests.
-    Acceptor acceptor(this, &listeningSocket);
-
     while (true) {
         /* Prepare for the select() call so that the listening at a socket doesn't completely block the execution. */
         fd_set socketDescriptors;
         FD_ZERO(&socketDescriptors);
-        int nSockets = listeningSocket.getSfd() + clientSockets.size();
-        FD_SET(listeningSocket.getSfd(), &socketDescriptors);
-        for (auto pSocket : clientSockets) FD_SET(pSocket->getSfd(), &socketDescriptors);
+        int nSockets = acceptor.getSfd() + connections.size();
+        FD_SET(acceptor.getSfd(), &socketDescriptors);
+        for (auto connection : connections) FD_SET(connection->getSfd(), &socketDescriptors);
 
         /*
          * Start the select() function, but only for reading when sockets are ready.  Set the last value to 0 in order
@@ -93,19 +90,16 @@ int Server::run()
         select(nSockets + 1, &socketDescriptors, 0, 0, 0);
 
         // when listening socket is ready to accept
-        if (FD_ISSET(listeningSocket.getSfd(), &socketDescriptors)) {
-            /* DBG: a better way would be for the acceptConnection to return a pointer directly.  That would avoid
-             * having to call the copy-constructor. */
-            // Socket * pSocket = new Socket(listeningSocket.acceptConnection());
+        if (FD_ISSET(acceptor.getSfd(), &socketDescriptors)) {
             acceptor.acceptConnection();
-            // clientSockets.push_back(pSocket);
             TRACE(verbosityLevel, "connection accepted")
         }
         // for messages on client sockets
         else {
-            // Loop through all client sockets to see if they are selected.
-            for (auto clientSocket : clientSockets) {
-                int clientSocketFD = clientSocket->getSfd();
+            // Loop through all connections to see if their client sockets are selected.
+            for (auto connection : connections) {
+                Socket * clientSocket   = connection->getSocket();
+                int      clientSocketFD = connection->getSfd();
                 assert(clientSocketFD > 0);
                 if (FD_ISSET(clientSocketFD, &socketDescriptors)) {
                     int         messageLength;
@@ -152,7 +146,8 @@ int Server::run()
 
 void Server::createConnection(Socket * pSocket)
 {
-    clientSockets.push_back(pSocket);
+    Connection * pConnection = new Connection(this, pSocket);
+    connections.push_back(pConnection);
 }
 
 void Server::signup(Socket * clientSocket, const std::vector<std::string> & userDetails)
