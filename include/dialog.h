@@ -109,6 +109,9 @@ public:
         paMenuItems[0] = new OKItem();
         paMenuItems[1] = new NCursesMenuItem();
         InitMenu(paMenuItems, false, true);
+
+        inForm = false;
+        inMenu = true;
     }
 };
 
