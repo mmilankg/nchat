@@ -13,8 +13,8 @@ public:
     virtual ~FindContactDialog() {}
 };
 
-/* DBG: This looks very similar to the SignupOKItem, so perhaps it
- * would be better to replace both with a DialogOKItem. */
+/* DBG: This looks very similar to the SignupOKItem, so perhaps it would be better to replace both with a DialogOKItem.
+ */
 class FindContactOKItem : public NCursesMenuItem {
     FindContactDialog * pParentPanel;
     Socket *            pSocket;
@@ -30,8 +30,7 @@ public:
     bool action();
 };
 
-/* DBG: again very similar to SignupCancelItem, so better taken into the
- * Dialog class. */
+/* DBG: again very similar to SignupCancelItem, so better taken into the Dialog class. */
 class FindContactCancelItem : public NCursesMenuItem {
 public:
     FindContactCancelItem() : NCursesMenuItem("     Cancel     ") {}
@@ -55,7 +54,7 @@ public:
     {
         FindContactDialog findContactDialog(pSocket);
         findContactDialog.run();
-        return false;
+        return true;
     }
 };
 
