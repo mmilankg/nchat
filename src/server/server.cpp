@@ -75,15 +75,19 @@ int Server::run()
         /* Prepare for the select() call so that the listening at a socket doesn't completely block the execution. */
         fd_set socketDescriptors;
         FD_ZERO(&socketDescriptors);
-        int nSockets = acceptor.getSfd() + connections.size();
+        int maxSfd = acceptor.getSfd();
         FD_SET(acceptor.getSfd(), &socketDescriptors);
-        for (auto connection : connections) FD_SET(connection->getSfd(), &socketDescriptors);
+        for (auto connection : connections) {
+            int connectionSfd = connection->getSfd();
+            FD_SET(connectionSfd, &socketDescriptors);
+            if (connectionSfd > maxSfd) maxSfd = connectionSfd;
+        }
 
         /*
          * Start the select() function, but only for reading when sockets are ready.  Set the last value to 0 in order
          * to listen indefinitely.
          */
-        select(nSockets + 1, &socketDescriptors, 0, 0, 0);
+        select(maxSfd + 1, &socketDescriptors, 0, 0, 0);
 
         // when listening socket is ready to accept
         if (FD_ISSET(acceptor.getSfd(), &socketDescriptors)) {
@@ -134,6 +138,10 @@ void Server::react(Connection * connection, MessageType messageType, const std::
     case mFindUser: {
         std::string requestedUsername = message.data();
         findUser(connection, requestedUsername);
+        break;
+    }
+    case mQuit: {
+        quit(connection);
         break;
     }
     }
@@ -267,6 +275,20 @@ void Server::logout(Connection * connection, const std::string & username)
             }
             break;
         }
+    }
+}
+
+void Server::quit(Connection * connection)
+{
+    // Remove the connection from the vector of connections.
+    auto iterator = connections.begin();
+    while (iterator != connections.end()) {
+        if (*iterator == connection) {
+            /* DBG: check if the erase() function also invokes the connection destructor. */
+            connections.erase(iterator);
+            break;
+        }
+        iterator++;
     }
 }
 

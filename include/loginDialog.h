@@ -54,6 +54,8 @@ public:
     bool action()
     {
         // Send the server the quit command.
+        int messageLength = sizeof(messageLength) + sizeof(mQuit);
+        pSocket->send(messageLength);
         pSocket->send(mQuit);
         return true;
     }

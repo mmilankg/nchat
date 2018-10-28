@@ -7,13 +7,10 @@
 #include <sstream>
 
 /*
- * Socket initialisation is based on example from man getaddrinfo.
- * The constructor does most of the work in setting up the connection.
- * For the server, it would create a socket, bind it to an interface
- * and prepare for listenning.
- * For the client, it will create a socket and connect it to the server.
- * The server socket is activated by passing an emptry string as the
- * hostName.
+ * Socket initialisation is based on example from man getaddrinfo.  The constructor does most of the work in setting up
+ * the connection.  For the server, it would create a socket, bind it to an interface and prepare for listenning.  For
+ * the client, it will create a socket and connect it to the server.  The server socket is activated by passing an
+ * emptry string as the hostName.
  */
 Socket::Socket(const std::string & hostName, int port, int bs) : bufSize(bs)
 {
@@ -83,8 +80,7 @@ void Socket::send(MessageType messageType, const std::string & text)
 {
     // Add 1 for terminating null-byte for each string.
     int messageLength = sizeof(messageLength) + sizeof(messageType) + text.length() + 1;
-    // Extend the socket-associated buffer if the message length exceeds
-    // its size.
+    // Extend the socket-associated buffer if the message length exceeds its size.
     if (messageLength > bufSize) {
         bufSize = messageLength;
         delete[] buffer;

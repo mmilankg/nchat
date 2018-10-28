@@ -10,9 +10,8 @@ int verbosityLevel = 0;
 
 class NCClient : public NCursesApplication {
     Socket socket;
-    /* DBG: The user object is not currently used, but it seems natural
-     * that the application itself should have the information on which
-     * user is logged on through it. */
+    /* DBG: The user object is not currently used, but it seems natural that the application itself should have the
+     * information on which user is logged on through it. */
     User user;
 
 protected:
@@ -20,8 +19,7 @@ protected:
     void title();
 
 public:
-    /* Hard-code server address (127.0.0.1, for testing) and port number
-     * (10001). */
+    /* Hard-code server address (127.0.0.1, for testing) and port number (10001). */
     NCClient() : NCursesApplication(true), socket("127.0.0.1", 10001, 1024) {}
     int      run();
     Socket & getSocket() { return socket; }

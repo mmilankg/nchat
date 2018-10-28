@@ -40,6 +40,7 @@ private:
     void signup(Connection * connection, const std::vector<std::string> & userDetails);
     void login(Connection * connection, const std::vector<std::string> & userDetails);
     void logout(Connection * connection, const std::string & username);
+    void quit(Connection * connection);
 
     int  checkUsername(const std::string & username) const;
     void addUser(Connection * connection, const std::vector<std::string> & userDetails);
