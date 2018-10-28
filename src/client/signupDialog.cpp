@@ -76,7 +76,7 @@ bool SignupOKItem::action()
 
     if (serverResponse == 0) {
         // Start the main working window after the user has signed up.
-        NCWindow ncWindow(pSocket);
+        NCWindow ncWindow(pSocket, username);
         ncWindow.run();
     }
     return false;

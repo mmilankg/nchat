@@ -72,7 +72,7 @@ bool LoginItem::action()
     pSocket->recv(serverResponse);
     if (serverResponse == 0) {
         // Start the main working window if the user is logged in.
-        NCWindow ncWindow(pSocket);
+        NCWindow ncWindow(pSocket, username);
         ncWindow.run();
     }
 

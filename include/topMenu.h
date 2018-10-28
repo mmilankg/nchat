@@ -2,8 +2,15 @@
 #define TOPMENU_H
 
 #include "dialog.h"
+#include "message.h"
 #include "socket.h"
 #include <cursesm.h>
+#include <string>
+
+/* DBG: Is this declaration allowed or maybe considered bad practice?  A better way seem to #include "ncWindow.h", but
+ * that file already includes this one. */
+class NCWindow;
+class TopMenu;
 
 class FindContactDialog : public Dialog {
     Socket * pSocket;
@@ -82,17 +89,21 @@ public:
 };
 
 class LogoutItem : public NCursesMenuItem {
-    Socket * pSocket;
-    bool     logout;
+    // pointer to the parent top menu
+    TopMenu * pTopMenu;
+    Socket *  pSocket;
+    bool      logout;
 
 public:
-    LogoutItem(const char * pTitle, Socket * pSock) : NCursesMenuItem(pTitle), pSocket(pSock), logout(false) {}
-
-    bool action()
+    LogoutItem(const char * pTitle, TopMenu * pTop, Socket * pSock) :
+        NCursesMenuItem(pTitle),
+        pTopMenu(pTop),
+        pSocket(pSock),
+        logout(false)
     {
-        logout = true;
-        return true;
     }
+
+    bool action();
     bool getLogoutStatus() const { return logout; }
 };
 
@@ -112,15 +123,21 @@ public:
 };
 
 class AccountMenu : public NCursesMenu {
+    // pointer to the parent top menu
+    TopMenu *          pTopMenu;
     NCursesMenuItem ** paItems;
     Socket *           pSocket;
     enum { nItems = 2 };
 
 public:
-    AccountMenu(Socket * pSock) : NCursesMenu(nItems, 9, 1, 12), paItems(0), pSocket(pSock)
+    AccountMenu(TopMenu * pTop, Socket * pSock) :
+        NCursesMenu(nItems, 9, 1, 12),
+        pTopMenu(pTop),
+        paItems(0),
+        pSocket(pSock)
     {
         paItems    = new NCursesMenuItem *[1 + nItems];
-        paItems[0] = new LogoutItem("Log out ", pSocket);
+        paItems[0] = new LogoutItem("Log out ", pTopMenu, pSocket);
         paItems[1] = new ExitItem("Exit", pSocket);
         paItems[2] = new NCursesMenuItem();
 
@@ -132,13 +149,16 @@ public:
 };
 
 class AccountItem : public NCursesMenuItem {
-    Socket * pSocket;
-    bool     logout;
-    bool     exit;
+    // pointer to the parent top menu
+    TopMenu * pTopMenu;
+    Socket *  pSocket;
+    bool      logout;
+    bool      exit;
 
 public:
-    AccountItem(const char * pTitle, Socket * pSock) :
+    AccountItem(const char * pTitle, TopMenu * pTop, Socket * pSock) :
         NCursesMenuItem(pTitle),
+        pTopMenu(pTop),
         pSocket(pSock),
         logout(false),
         exit(false)
@@ -147,7 +167,7 @@ public:
 
     bool action()
     {
-        AccountMenu accountMenu(pSocket);
+        AccountMenu accountMenu(pTopMenu, pSocket);
         accountMenu();
         logout = accountMenu.getLogoutStatus();
         exit   = accountMenu.getExitStatus();
@@ -158,16 +178,22 @@ public:
 };
 
 class TopMenu : public NCursesMenu {
+    // pointer to the parent window
+    NCWindow *         pNCWindow;
     NCursesMenuItem ** paItems;
     Socket *           pSocket;
     enum { nItems = 2 };
 
 public:
-    TopMenu(Socket * pSock) : NCursesMenu(1, 10 * nItems + 2, 0, 0), paItems(0), pSocket(pSock)
+    TopMenu(NCWindow * pNCWin, Socket * pSock) :
+        pNCWindow(pNCWin),
+        NCursesMenu(1, 10 * nItems + 2, 0, 0),
+        paItems(0),
+        pSocket(pSock)
     {
         paItems    = new NCursesMenuItem *[1 + nItems];
         paItems[0] = new ContactsItem("Contacts  ", pSocket);
-        paItems[1] = new AccountItem("Account  ", pSocket);
+        paItems[1] = new AccountItem("Account  ", this, pSocket);
         paItems[2] = new NCursesMenuItem(); // empty item terminator
 
         InitMenu(paItems, false, true);
@@ -177,6 +203,8 @@ public:
     bool getLogoutStatus() const { return ((AccountItem *)paItems[1])->getLogoutStatus(); }
     bool getExitStatus() const { return ((AccountItem *)paItems[1])->getExitStatus(); }
     void handleKey(int key);
+
+    NCWindow * getNCWindow() const { return pNCWindow; }
 };
 
 #endif // TOPMENU_H

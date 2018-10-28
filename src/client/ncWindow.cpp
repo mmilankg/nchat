@@ -5,7 +5,7 @@
 #include <fstream>
 #include <vector>
 
-NCWindow::NCWindow(Socket * pSock) : pSocket(pSock)
+NCWindow::NCWindow(Socket * pSock, const std::string & uname) : pSocket(pSock), username(uname)
 {
     /* Create the background panel and split it into three areas. */
     pBackground = new NCursesPanel();
@@ -20,7 +20,7 @@ NCWindow::NCWindow(Socket * pSock) : pSocket(pSock)
     pBackground->addch(2 * pBackground->height() / 3, pBackground->width() - 1, ACS_RTEE);
 
     /* Create the top menu. */
-    pTopMenu = new TopMenu(pSocket);
+    pTopMenu = new TopMenu(this, pSocket);
 
     /* Create the contacts panel. */
     pContactsPanel = new NCursesPanel(pBackground->height() - 2, pBackground->width() / 3 - 1, 1, 1);
@@ -78,7 +78,6 @@ void NCWindow::run()
         if (FD_ISSET(stdinFD, &fileDescriptors)) {
             int key = getch();
             pTopMenu->handleKey(key);
-            // pTopMenu->operator()();
             logout = pTopMenu->getLogoutStatus();
             exit   = pTopMenu->getExitStatus();
         }

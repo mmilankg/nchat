@@ -43,6 +43,9 @@ void Dialog::run()
         if (inMenu) {
             if (command == DIALOG_ENTER) {
                 bool quit = paMenuItems[itemIndex]->action();
+                /* DBG: refresh after returning from the main window. */
+                NCursesForm::refresh();
+                NCursesMenu::refresh();
                 if (quit) break;
             }
         }

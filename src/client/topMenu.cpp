@@ -1,3 +1,4 @@
+#include "ncWindow.h"
 #include "topMenu.h"
 
 FindContactDialog::FindContactDialog(Socket * pSocket, int h, int w, int y, int x) : Dialog(h, w, y, x)
@@ -28,6 +29,19 @@ bool FindContactOKItem::action()
     // Send contact request to server.
     pSocket->send(mFindUser, requestedUsername);
 
+    return true;
+}
+
+bool LogoutItem::action()
+{
+    /* Send the logout signal to server. */
+    NCWindow *  pNCWindow     = pTopMenu->getNCWindow();
+    std::string username      = pNCWindow->getUsername();
+    int         messageLength = sizeof(messageLength) + sizeof(mLogout) + username.length() + 1;
+    pSocket->send(messageLength);
+    pSocket->send(mLogout);
+    pSocket->send(username);
+    logout = true;
     return true;
 }
 
