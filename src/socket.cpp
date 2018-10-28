@@ -61,18 +61,18 @@ Socket::Socket(const std::string & hostName, int port, int bs) : bufSize(bs)
     buffer = new char[bufSize];
 }
 
-Socket & Socket::acceptConnection()
+Socket Socket::acceptConnection()
 {
     struct sockaddr clientAddress;
     socklen_t       clientAddressSize = sizeof(clientAddress);
     int             cfd               = accept(sfd, &clientAddress, &clientAddressSize);
     assert(cfd != -1);
-    Socket * pCommunicationSocket = new Socket();
-    pCommunicationSocket->setSfd(cfd);
-    pCommunicationSocket->bufSize = bufSize;
-    pCommunicationSocket->allocateBuffer();
-    pCommunicationSocket->networkAddress = clientAddress;
-    return *pCommunicationSocket;
+    Socket communicationSocket;
+    communicationSocket.setSfd(cfd);
+    communicationSocket.bufSize = bufSize;
+    communicationSocket.allocateBuffer();
+    communicationSocket.networkAddress = clientAddress;
+    return communicationSocket;
 }
 
 // Send a set of strings in one packed message.

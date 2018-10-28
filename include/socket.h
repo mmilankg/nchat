@@ -32,12 +32,20 @@ public:
     /* The server port is arbitrarily set to 10001 by default.  The default buffer size is 1024 bytes. */
     Socket(const std::string & hostName, int port = 10001, int bs = 1024);
     // copy-constructor
-    Socket(const Socket & socket)
+    Socket(const Socket & socket) :
+        sfd(socket.sfd),
+        bufSize(socket.bufSize),
+        buffer(socket.buffer),
+        networkAddress(socket.networkAddress)
     {
-        sfd            = socket.sfd;
-        bufSize        = socket.bufSize;
-        buffer         = socket.buffer;
-        networkAddress = socket.networkAddress;
+    }
+    /* DBG: attempt implementation of a move constructor */
+    Socket(Socket && socket) :
+        sfd(std::move(socket.sfd)),
+        bufSize(std::move(socket.bufSize)),
+        buffer(std::move(socket.buffer)),
+        networkAddress(std::move(socket.networkAddress))
+    {
     }
     /* DBG: check if virtual is necessary! */
     virtual ~Socket()
@@ -63,14 +71,14 @@ public:
     virtual void send(MessageType messageType, const std::string & text);
     virtual void send(MessageType messageType, const std::vector<std::string> & parts);
 
-    virtual void     recv(char * buf) const { read(sfd, buf, bufSize); }
-    virtual void     recv(std::vector<char> & buffer, int count) const;
-    virtual void     recv(std::string & text) const;
-    virtual void     recv(int & num) const { read(sfd, &num, sizeof(num)); }
-    virtual void     recv(MessageType & messageType) const { read(sfd, &messageType, sizeof(messageType)); }
-    virtual void     recv(MessageType & messageType, std::vector<std::string> & parts);
-    virtual Socket & acceptConnection();
-    void             allocateBuffer() { buffer = new char[bufSize]; }
+    virtual void   recv(char * buf) const { read(sfd, buf, bufSize); }
+    virtual void   recv(std::vector<char> & buffer, int count) const;
+    virtual void   recv(std::string & text) const;
+    virtual void   recv(int & num) const { read(sfd, &num, sizeof(num)); }
+    virtual void   recv(MessageType & messageType) const { read(sfd, &messageType, sizeof(messageType)); }
+    virtual void   recv(MessageType & messageType, std::vector<std::string> & parts);
+    virtual Socket acceptConnection();
+    void           allocateBuffer() { buffer = new char[bufSize]; }
 };
 
 #endif // SOCKET_H
