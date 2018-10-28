@@ -31,26 +31,6 @@ bool FindContactOKItem::action()
     return true;
 }
 
-ContactRequestReturnDialog::ContactRequestReturnDialog(
-    const std::string & contactUsername, int serverResponse, int h, int w, int y, int x)
-{
-    paFormFields        = new NCursesFormField *[2];
-    std::string message = "User " + contactUsername;
-    if (serverResponse == 1) message += " not";
-    message += "found.";
-    paFormFields[0] = new LabelField(message, 1, 2);
-    paFormFields[1] = new NCursesFormField();
-
-    InitForm(paFormFields, true, true);
-
-    paMenuItems    = new NCursesMenuItem *[2];
-    paMenuItems[0] = new OKItem();
-    paMenuItems[1] = new NCursesMenuItem();
-
-    InitMenu(paMenuItems, false, true);
-    set_format(1, 1);
-}
-
 /* DBG: There should be a better place for this, especially because it
  * also appears in dialog.cpp! */
 static const int CMD_QUIT   = MAX_COMMAND + 1;
