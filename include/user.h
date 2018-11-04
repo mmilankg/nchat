@@ -89,6 +89,7 @@ public:
     void                     setSentContactRequestIDs(const std::vector<int> & crids) { sentContactRequestIDs = crids; }
     std::vector<int> &       getReceivedContactRequestIDs() { return receivedContactRequestIDs; }
     void setReceivedContactRequestIDs(const std::vector<int> & crids) { receivedContactRequestIDs = crids; }
+    void addContact(int contactID) { contactIDs.push_back(contactID); }
 };
 
 // stripped down class for representing a user as a contact of another user

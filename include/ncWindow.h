@@ -49,6 +49,7 @@ public:
 
 private:
     void addContact(const std::string & username, int origin);
+    void handleContactRequest(const std::string & username, int response);
 };
 
 #endif // NCWINDOW_H

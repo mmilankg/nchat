@@ -45,6 +45,7 @@ private:
     int  checkUsername(const std::string & username) const;
     void addUser(Connection * connection, const std::vector<std::string> & userDetails);
     void findUser(Connection * connection, const std::string & username);
+    void handleContactResponse(Connection * connection, int clientResponse, const std::string & username);
 
     void bufferToStrings(char * buffer, int bufferLength, std::vector<std::string> & strings) const;
     void bufferToStrings(const std::vector<char> & buffer, std::vector<std::string> & strings) const;

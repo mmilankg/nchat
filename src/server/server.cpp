@@ -140,6 +140,12 @@ void Server::react(Connection * connection, MessageType messageType, const std::
         findUser(connection, requestedUsername);
         break;
     }
+    case mContactRequest: {
+        int         clientResponse = *message.data();
+        std::string username       = message.data() + sizeof(clientResponse);
+        handleContactResponse(connection, clientResponse, username);
+        break;
+    }
     case mQuit: {
         quit(connection);
         break;
@@ -424,6 +430,32 @@ void Server::findUser(Connection * connection, const std::string & requestedUser
     std::memcpy(messageContent.data(), &serverResponse, sizeof(serverResponse));
     std::memcpy(messageContent.data() + sizeof(serverResponse), requestedUsername.c_str(), requestedUsername.length());
     connection->transmit(mFindUser, messageContent);
+}
+
+void Server::handleContactResponse(Connection * connection, int clientResponse, const std::string & username)
+{
+    if (clientResponse == 0) {
+        /* The user has accepted contact request from the other user. */
+        int sendingUserID = 0, receivingUserID = 0;
+        /* Get the ID of the user who sent the request. */
+        for (auto && user : users) {
+            if (user.getUsername() == username) {
+                sendingUserID = user.getUserID();
+                break;
+            }
+        }
+        /* Get the ID of the user who received the request. */
+        for (auto && user : users) {
+            if (user.getConnection() == connection) {
+                receivingUserID = user.getUserID();
+                break;
+            }
+        }
+
+        /* Extend the list of established contacts for both users. */
+        users[sendingUserID].addContact(receivingUserID);
+        users[receivingUserID].addContact(sendingUserID);
+    }
 }
 
 void Server::bufferToStrings(char * buffer, int bufferLength, std::vector<std::string> & strings) const

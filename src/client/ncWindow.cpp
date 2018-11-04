@@ -115,14 +115,7 @@ void NCWindow::run()
                 contactRequest();
                 int response = contactRequest.getResponse();
 
-                if (response == 0) {
-                    /*
-                    addContact(sendingUsername, 0);
-                    */
-                }
-                else if (response == 2) {
-                    addContact(sendingUsername, 0);
-                }
+                handleContactRequest(sendingUsername, response);
 
                 break;
             }
@@ -140,12 +133,10 @@ void NCWindow::run()
 void NCWindow::addContact(const std::string & username, int origin)
 {
     /*
-     * Add an entry into the contacts panel.  If origin is 0, this will be
-     * an entry for a user who sent the contact request.  If origin is 1,
-     * it will be for a user who receives it.
+     * Add an entry into the contacts panel.  If origin is 0, this will be an entry for a user who sent the contact
+     * request.  If origin is 1, it will be for a user who receives it.
      *
-     * DBG: Is this considered a bad practice?  Would an enumerated type
-     * be better to use for origin?
+     * DBG: Is this considered a bad practice?  Would an enumerated type be better to use for origin?
      */
     NCursesMenu * pContact;
     if (origin == 0)
@@ -157,4 +148,35 @@ void NCWindow::addContact(const std::string & username, int origin)
     pContact->show();
     pContact->refresh();
     pBackground->refresh();
+}
+
+void NCWindow::handleContactRequest(const std::string & username, int response)
+{
+    switch (response) {
+    case (0): {
+        break;
+    }
+    case (1): {
+        break;
+    }
+    case (2): {
+        addContact(username, 0);
+        break;
+    }
+    }
+
+    /* If user hasn't deferred the decision (response < 2), send their response to the contact request to server. */
+    if (response < 2) {
+        int messageLength = sizeof(messageLength);
+        messageLength += sizeof(mContactRequest);
+        int messageContentLength = sizeof(int) + username.length() + 1;
+        messageLength += messageContentLength;
+        std::vector<char> messageContent;
+        messageContent.resize(messageContentLength);
+        std::memcpy(messageContent.data(), &response, sizeof(response));
+        std::memcpy(messageContent.data() + sizeof(response), username.c_str(), username.length());
+        pSocket->send(messageLength);
+        pSocket->send(mContactRequest);
+        pSocket->send(messageContent);
+    }
 }
