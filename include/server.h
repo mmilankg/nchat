@@ -49,6 +49,8 @@ private:
 
     void bufferToStrings(char * buffer, int bufferLength, std::vector<std::string> & strings) const;
     void bufferToStrings(const std::vector<char> & buffer, std::vector<std::string> & strings) const;
+
+    void updateUsersFile();
 };
 
 #endif // SERVER_H

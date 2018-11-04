@@ -458,6 +458,7 @@ void Server::handleContactResponse(Connection * connection, int clientResponse, 
         /* Extend the list of established contacts for both users. */
         users[sendingUserID].addContact(receivingUserID);
         users[receivingUserID].addContact(sendingUserID);
+        updateUsersFile();
     }
 }
 
@@ -486,4 +487,12 @@ void Server::bufferToStrings(const std::vector<char> & buffer, std::vector<std::
         strings.push_back(buffer.data() + nBytesProcessed);
         nBytesProcessed += strings.back().length() + 1;
     }
+}
+
+void Server::updateUsersFile()
+{
+    usersFile.close();
+    usersFile.open(usersFileName.c_str());
+    for (auto && user : users) usersFile << user;
+    usersFile.close();
 }

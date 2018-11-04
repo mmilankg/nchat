@@ -2,6 +2,7 @@
 #define USER_H
 
 #include "connection.h"
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -90,6 +91,8 @@ public:
     std::vector<int> &       getReceivedContactRequestIDs() { return receivedContactRequestIDs; }
     void setReceivedContactRequestIDs(const std::vector<int> & crids) { receivedContactRequestIDs = crids; }
     void addContact(int contactID) { contactIDs.push_back(contactID); }
+
+    friend std::ostream & operator<<(std::ostream & os, const User & user);
 };
 
 // stripped down class for representing a user as a contact of another user
