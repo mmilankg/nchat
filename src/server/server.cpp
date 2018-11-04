@@ -259,22 +259,25 @@ void Server::logout(Connection * connection, const std::string & username)
      * Set the pointer for this user's connection object as 0, set the user status as offline, and inform contacts to
      * update their status flags for the user.
      */
-    for (auto user : users) {
+    for (auto && user : users) {
         if (username == user.getUsername()) {
             // The user has been found, so update the corresponding fields in the entry.
             user.setConnection(0);
             user.setStatus(offline);
             // Iterate through the list of contacts and inform other users that this one has logged out.
             const std::vector<int> & rContactIDs = user.getContactIDs();
-            for (auto contactID : rContactIDs) {
+            for (auto && contactID : rContactIDs) {
                 /* DBG: This is going to be extremely inefficient as it involves double loop!  There should be a better
                  * way to store user objects so that the connection pointer is retrieved automatically with user ID. */
-                for (auto innerUser : users) {
+                for (auto && innerUser : users) {
                     int innerUserContactID = innerUser.getUserID();
                     if (innerUserContactID == contactID) {
-                        /* If the contact has been found, send it a message about the user being logged out. */
+                        /*
+                         * If the contact has been found and is online, send them a message about the user being logged
+                         * out.
+                         */
                         Connection * innerUserConnection = innerUser.getConnection();
-                        innerUserConnection->transmit(mLogout, user.getUsername());
+                        if (innerUserConnection) innerUserConnection->transmit(mLogout, user.getUsername());
                         break;
                     }
                 }

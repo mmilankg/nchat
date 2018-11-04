@@ -154,6 +154,12 @@ void NCWindow::handleContactRequest(const std::string & username, int response)
 {
     switch (response) {
     case (0): {
+        NCursesMenu * pContact = new ContactMenu(username, vpContactMenus.size());
+        vpContactMenus.push_back(pContact);
+        pContact->post();
+        pContact->show();
+        pContact->refresh();
+        pBackground->refresh();
         break;
     }
     case (1): {
