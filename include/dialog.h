@@ -101,6 +101,7 @@ public:
         std::string message = "User " + username + " has ";
         if (serverResponse == 1) message += "not ";
         message += "been found.";
+        if (serverResponse == 2) message = "Self-contact is not allowed.";
         paFormFields[0] = new LabelField(message, 0, 1);
         paFormFields[1] = new NCursesFormField();
         InitForm(paFormFields, true, true);

@@ -1,5 +1,6 @@
 #include "contactMenu.h"
 #include "ncWindow.h"
+#include "popup.h"
 #include "user.h"
 #include <cursesp.h>
 #include <fstream>
@@ -92,6 +93,7 @@ void NCWindow::run()
 
             // Process the message.
             switch (messageType) {
+            // server response to a sent request for establishing a contact with another user
             case mFindUser: {
                 int serverResponse = *buffer;
                 buffer += sizeof(serverResponse);
@@ -100,7 +102,28 @@ void NCWindow::run()
                 findUserResponse.run();
 
                 /* Add the contact entry to the contacts panel. */
-                addContact(requestedUsername, 1);
+                if (serverResponse == 0) addContact(requestedUsername, 1);
+                break;
+            }
+            case mContactRequest: {
+                std::string sendingUsername = buffer;
+                // user's response to the contact request:
+                // 0: accept
+                // 1: reject
+                // 2: defer
+                int response;
+                /*
+                ContactRequestDialog contactRequest(sendingUsername, response);
+                contactRequest.run();
+                */
+                Popup contactRequest(sendingUsername);
+                contactRequest();
+
+                /*
+                if (response == 0) addContact(sendingUsername, 0);
+                else if (response == 2) addContact(sendingUsername, 1);
+                */
+                break;
             }
             }
         }

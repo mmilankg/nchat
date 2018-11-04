@@ -24,10 +24,7 @@ void Dialog::run()
 {
     NCursesMenu::post();
     NCursesMenu::show();
-    /*
-     * DBG: Selects the last (invisible) item to
-     * leave the appearance that no items are selected.
-     */
+    /* DBG: Selects the last (invisible) item to leave the appearance that no items are selected. */
     NCursesMenu::driver(REQ_LAST_ITEM);
     NCursesMenu::refresh();
     NCursesForm::post();
@@ -76,11 +73,8 @@ int Dialog::virtualize(int key)
 int Dialog::driver(int command)
 {
     /*
-     * The first if-block deals with switching between the
-     * form and the menu.  It detects when the next entity
-     * is chosen from the last entity of a group, or when
-     * the previous entity is chosen from the first entity
-     * of a group.
+     * The first if-block deals with switching between the form and the menu.  It detects when the next entity is chosen
+     * from the last entity of a group, or when the previous entity is chosen from the first entity of a group.
      */
     if (inForm) {
         int fieldIndex = ::field_index(::current_field(form));
@@ -89,13 +83,9 @@ int Dialog::driver(int command)
             inForm = false;
             inMenu = true;
             /*DBG!
-             * Some command needs to be sent to the driver for
-             * the field to pick up the entered data.  Sending
-             * REQ_END_FIELD seems the least disruptive to do
-             * the job.  This all * seems very inelegant, and
-             * will have to be reworked.  Ideally, both fields
-             * should be deactivated once the cursor moves to
-             * the menu.
+             * Some command needs to be sent to the driver for the field to pick up the entered data.  Sending
+             * REQ_END_FIELD seems the least disruptive to do the job.  This all * seems very inelegant, and will have
+             * to be reworked.  Ideally, both fields should be deactivated once the cursor moves to the menu.
              */
             NCursesForm::driver(REQ_END_FIELD);
             NCursesMenu::set_current(*paMenuItems[0]);
@@ -105,16 +95,14 @@ int Dialog::driver(int command)
             return 0;
         }
         /*
-         * Assume that the first field is always a label and the
-         * first active field starts with index 1 (second field).
+         * Assume that the first field is always a label and the first active field starts with index 1 (second field).
          */
         if ((fieldIndex == 1) && (command == DIALOG_PREV)) {
             inForm = false;
             inMenu = true;
             /*
-             * DBG: Select the second to last menu item (last is
-             * the fake item used only to leave an impressions that
-             * no items are selected).
+             * DBG: Select the second to last menu item (last is the fake item used only to leave an impressions that no
+             * items are selected).
              */
             NCursesMenu::set_current(*paMenuItems[NCursesMenu::count() - 2]);
             NCursesMenu::position_cursor();
@@ -135,10 +123,7 @@ int Dialog::driver(int command)
             NCursesForm::set_current(*paFormFields[1]);
             NCursesForm::position_cursor();
             NCursesForm::refresh();
-            /*
-             * DBG: Select the last (fake) manu item to leave an appearance
-             * that none is selected.
-             */
+            /* DBG: Select the last (fake) menu item to leave an appearance that none is selected. */
             NCursesMenu::set_current(*paMenuItems[NCursesMenu::count() - 1]);
             NCursesMenu::refresh();
             return 0;
@@ -149,10 +134,7 @@ int Dialog::driver(int command)
             NCursesForm::set_current(*paFormFields[NCursesForm::count() - 1]);
             NCursesForm::position_cursor();
             NCursesForm::refresh();
-            /*
-             * DBG: Select the last (fake) manu item to leave an appearance
-             * that none is selected.
-             */
+            /* DBG: Select the last (fake) menu item to leave an appearance that none is selected. */
             NCursesMenu::set_current(*paMenuItems[NCursesMenu::count() - 1]);
             NCursesMenu::refresh();
             return 0;

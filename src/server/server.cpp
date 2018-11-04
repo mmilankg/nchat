@@ -380,38 +380,43 @@ void Server::findUser(Connection * connection, const std::string & requestedUser
      * The server doesn't allow a user to request a contact with themselves and returns a response 2 to indicate that to
      * the client.
      */
-    int                         serverResponse;
-    std::vector<User>::iterator requestedUserIt;
-    for (requestedUserIt = users.begin(); requestedUserIt != users.end(); requestedUserIt++) {
-        if (requestedUsername == requestedUserIt->getUsername()) {
-            // Send the requesting user response 0.
-            serverResponse = 0;
+    int  serverResponse;
+    bool requestedUserFound = false;
+    for (auto && requestedUser : users) {
+        if (requestedUsername == requestedUser.getUsername()) {
+            requestedUserFound  = true;
+            int requestedUserID = requestedUser.getUserID();
             // The requested user has been found.  Find the sending user from its connection pointer.
-            std::vector<User>::iterator sendingUserIt;
-            for (sendingUserIt = users.begin(); sendingUserIt != users.end(); sendingUserIt++)
-                if (connection == sendingUserIt->getConnection()) break;
+            int         sendingUserID;
+            std::string sendingUsername;
+            for (auto && sendingUser : users)
+                if (connection == sendingUser.getConnection()) {
+                    sendingUserID   = sendingUser.getUserID();
+                    sendingUsername = sendingUser.getUsername();
+                    break;
+                }
+
             // It's not allowed for a user to establish a self-contact.
-            if (requestedUserIt == sendingUserIt) {
+            if (requestedUserID == sendingUserID) {
                 serverResponse = 2;
                 break;
             }
-            int                sendingUserID         = sendingUserIt->getUserID();
-            int                requestedUserID       = requestedUserIt->getUserID();
-            std::vector<int> & sentContactRequestIDs = requestedUserIt->getSentContactRequestIDs();
+
+            // Send the requesting user response 0.
+            serverResponse = 0;
+
+            std::vector<int> & sentContactRequestIDs = users[sendingUserID].getSentContactRequestIDs();
             sentContactRequestIDs.push_back(requestedUserID);
-            std::vector<int> & receivedContactRequestIDs = requestedUserIt->getReceivedContactRequestIDs();
+            std::vector<int> & receivedContactRequestIDs = requestedUser.getReceivedContactRequestIDs();
             receivedContactRequestIDs.push_back(sendingUserID);
-            Connection * requestedUserConnection = requestedUserIt->getConnection();
-            if (requestedUserConnection != 0) {
-                std::string sendingUsername = sendingUserIt->getUsername();
-                requestedUserConnection->transmit(mContactRequest, sendingUsername);
-            }
+            Connection * requestedUserConnection = requestedUser.getConnection();
+            if (requestedUserConnection != 0) requestedUserConnection->transmit(mContactRequest, sendingUsername);
             break;
         }
     }
 
     // The requested user hasn't been found.  Send the requesting user response 1.
-    if (requestedUserIt == users.end()) serverResponse = 1;
+    if (!requestedUserFound) serverResponse = 1;
 
     int               messageContentLength = sizeof(serverResponse) + requestedUsername.length() + 1;
     std::vector<char> messageContent;
