@@ -5,34 +5,46 @@
 #include <cursesp.h>
 #include <string>
 
-class AcceptItem : public NCursesMenuItem {
-public:
-    AcceptItem(const std::string & title) : NCursesMenuItem(title.c_str()) {}
+class Popup;
 
-    bool action() { return true; }
+class AcceptItem : public NCursesMenuItem {
+    Popup * popup;
+
+public:
+    AcceptItem(Popup * pPopup, const std::string & title) : popup(pPopup), NCursesMenuItem(title.c_str()) {}
+
+    bool action();
 };
 
 class RejectItem : public NCursesMenuItem {
-public:
-    RejectItem(const std::string & title) : NCursesMenuItem(title.c_str()) {}
+    Popup * popup;
 
-    bool action() { return true; }
+public:
+    RejectItem(Popup * pPopup, const std::string & title) : popup(pPopup), NCursesMenuItem(title.c_str()) {}
+
+    bool action();
 };
 
 class DeferItem : public NCursesMenuItem {
-public:
-    DeferItem(const std::string & title) : NCursesMenuItem(title.c_str()) {}
+    Popup * popup;
 
-    bool action() { return true; }
+public:
+    DeferItem(Popup * pPopup, const std::string & title) : popup(pPopup), NCursesMenuItem(title.c_str()) {}
+
+    bool action();
 };
 
 class Popup : public NCursesMenu {
     NCursesPanel *     panel;
     NCursesMenuItem ** items;
+    int                response;
 
 public:
     Popup(const std::string & username, int width = 50);
     virtual ~Popup();
+
+    void setResponse(int resp) { response = resp; }
+    int  getResponse() const { return response; }
 };
 
 #endif // POPUP_H

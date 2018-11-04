@@ -111,18 +111,19 @@ void NCWindow::run()
                 // 0: accept
                 // 1: reject
                 // 2: defer
-                int response;
-                /*
-                ContactRequestDialog contactRequest(sendingUsername, response);
-                contactRequest.run();
-                */
                 Popup contactRequest(sendingUsername);
                 contactRequest();
+                int response = contactRequest.getResponse();
 
-                /*
-                if (response == 0) addContact(sendingUsername, 0);
-                else if (response == 2) addContact(sendingUsername, 1);
-                */
+                if (response == 0) {
+                    /*
+                    addContact(sendingUsername, 0);
+                    */
+                }
+                else if (response == 2) {
+                    addContact(sendingUsername, 0);
+                }
+
                 break;
             }
             }

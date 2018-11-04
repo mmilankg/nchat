@@ -1,8 +1,27 @@
 #include "popup.h"
 #include <vector>
 
+bool AcceptItem::action()
+{
+    popup->setResponse(0);
+    return true;
+}
+
+bool RejectItem::action()
+{
+    popup->setResponse(1);
+    return true;
+}
+
+bool DeferItem::action()
+{
+    popup->setResponse(2);
+    return true;
+}
+
 Popup::Popup(const std::string & username, int width) :
     NCursesMenu(1, width, (lines() + 3) / 2, (cols() - width) / 2),
+    response(0),
     panel(0),
     items(0)
 {
@@ -10,12 +29,12 @@ Popup::Popup(const std::string & username, int width) :
     int                      nItems       = buttonLabels.size();
     int                      buttonLength = width / nItems;
     for (auto && label : buttonLabels)
-	for (int i = label.size(); i < buttonLength; i++) label += " ";
+        for (int i = label.size(); i < buttonLength; i++) label += " ";
 
     items    = new NCursesMenuItem *[nItems + 1];
-    items[0] = new AcceptItem(buttonLabels[0]);
-    items[1] = new RejectItem(buttonLabels[1]);
-    items[2] = new DeferItem(buttonLabels[2]);
+    items[0] = new AcceptItem(this, buttonLabels[0]);
+    items[1] = new RejectItem(this, buttonLabels[1]);
+    items[2] = new DeferItem(this, buttonLabels[2]);
     items[3] = new NCursesMenuItem();
 
     InitMenu(items, false, true);
