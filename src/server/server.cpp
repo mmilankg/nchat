@@ -227,28 +227,15 @@ void Server::login(Connection * connection, const std::vector<std::string> & use
         // Set the connection for this user.
         userIterator->setConnection(connection);
 
-        // Send the list of contacts to the user.
+        // Send the list of established contacts to the user.
         const std::vector<int> & contacts = userIterator->getContactIDs();
-        for (auto contactID : contacts) {
-            const std::string & contactUsername = users[contactID].getUsername();
-            const std::string & contactName     = users[contactID].getName();
-            Status              contactStatus   = users[contactID].getStatus();
-            // Allocate buffer for sending the message to the client.
-            MessageType messageType  = mSendContact;
-            int messageContentLength = sizeof(contactID) + contactUsername.length() + 1 + contactName.length() + 1
-                                       + sizeof(contactStatus);
-            std::vector<char> messageContent;
-            messageContent.resize(messageContentLength);
-            int nBytesProcessed = 0;
-            std::memcpy(messageContent.data() + nBytesProcessed, &contactID, sizeof(contactID));
-            nBytesProcessed += sizeof(contactID);
-            std::memcpy(messageContent.data() + nBytesProcessed, contactUsername.c_str(), contactUsername.length());
-            nBytesProcessed += sizeof(contactUsername.length() + 1);
-            std::memcpy(messageContent.data() + nBytesProcessed, contactName.c_str(), contactName.length());
-            nBytesProcessed += sizeof(contactName.length() + 1);
-            std::memcpy(messageContent.data() + nBytesProcessed, &contactStatus, sizeof(contactStatus));
-            connection->transmit(messageType, messageContent);
-        }
+        for (auto contactID : contacts) users[contactID].transmit(connection, mEstablishedContact);
+        // Send the list of users to whom the logged in user sent contact requests.
+        const std::vector<int> & sentContacts = userIterator->getSentContactRequestIDs();
+        for (auto contactID : sentContacts) users[contactID].transmit(connection, mSentContactRequest);
+        // Send the list of users from whom the logged in user received contact requests.
+        const std::vector<int> & receivedContacts = userIterator->getReceivedContactRequestIDs();
+        for (auto contactID : receivedContacts) users[contactID].transmit(connection, mReceivedContactRequest);
     }
 }
 

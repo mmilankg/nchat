@@ -91,6 +91,7 @@ public:
     std::vector<int> &       getReceivedContactRequestIDs() { return receivedContactRequestIDs; }
     void setReceivedContactRequestIDs(const std::vector<int> & crids) { receivedContactRequestIDs = crids; }
     void addContact(int contactID) { contactIDs.push_back(contactID); }
+    void transmit(Connection * conn, MessageType messageType) const;
 
     friend std::ostream & operator<<(std::ostream & os, const User & user);
 };
