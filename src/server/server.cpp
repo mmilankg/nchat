@@ -420,6 +420,7 @@ void Server::findUser(Connection * connection, const std::string & requestedUser
             receivedContactRequestIDs.push_back(sendingUserID);
             Connection * requestedUserConnection = requestedUser.getConnection();
             if (requestedUserConnection != 0) requestedUserConnection->transmit(mContactRequest, sendingUsername);
+            updateUsersFile();
             break;
         }
     }
