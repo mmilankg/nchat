@@ -10,9 +10,15 @@ enum ContactType {
     cReceivedContact     // received contact request
 };
 
+class ContactMenu;
+
 class TextItem : public NCursesMenuItem {
+    ContactMenu * parent;
+
 public:
-    TextItem(const char * pTitle) : NCursesMenuItem(pTitle) {}
+    TextItem(ContactMenu * pParent, const char * pTitle) : NCursesMenuItem(pTitle), parent(pParent) {}
+
+    bool action();
 };
 
 class CallItem : public NCursesMenuItem {
@@ -29,6 +35,7 @@ class ContactMenu : public NCursesMenu {
 private:
     NCursesMenuItem ** paItems;
     enum { nItems = 4 };
+    int activatedItem = 0;
 
 public:
     ContactMenu(const std::string & username, int position) :
@@ -37,7 +44,7 @@ public:
     {
         paItems    = new NCursesMenuItem *[1 + nItems];
         paItems[0] = new NCursesMenuItem(username.c_str());
-        paItems[1] = new TextItem("Text   ");
+        paItems[1] = new TextItem(this, "Text   ");
         paItems[2] = new CallItem("Call   ");
         paItems[3] = new RemoveItem("Remove ");
         paItems[4] = new NCursesMenuItem(); // empty item terminator
@@ -47,6 +54,8 @@ public:
         set_format(1, nItems);
     }
 
+    int  getActivated() const { return activatedItem; }
+    void setActivated(int activated) { activatedItem = activated; }
     void handleKey(int key);
 };
 

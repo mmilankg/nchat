@@ -115,8 +115,28 @@ void NCWindow::run()
                     break;
                 }
                 case eContacts: {
+                    assert(selectedContact < vpContactMenus.size());
                     /* DBG: Is downcasting acceptable? */
+                    ((ContactMenu *)vpContactMenus[selectedContact])->setActivated(0);
                     if (vpContactMenus.size() > 0) ((ContactMenu *)vpContactMenus[selectedContact])->handleKey(key);
+                    /* DBG: process only text message requests for the moment. */
+                    if (((ContactMenu *)vpContactMenus[selectedContact])->getActivated() == 1) {
+                        /* Switch focus to message panel. */
+                        pContactsPanel->frame("Contacts");
+                        pMessagePanel->boldframe("Message");
+                        panelSelection                    = eMessage;
+                        std::string              username = (*vpContactMenus[selectedContact])[0]->name();
+                        std::vector<std::string> contents;
+                        contents.push_back(username);
+                        ::echo();
+                        std::string message;
+                        pMessagePanel->move(1, 1);
+                        int character;
+                        while ((character = pMessagePanel->getch()) != '\n') message.push_back(character);
+                        ::noecho();
+                        contents.push_back(message);
+                        pSocket->send(mText, contents);
+                    }
                     break;
                 }
                 }

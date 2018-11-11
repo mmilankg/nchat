@@ -1,6 +1,11 @@
 #include "contactMenu.h"
 #include <cursesm.h>
 
+bool TextItem::action()
+{
+    parent->setActivated(1);
+}
+
 /* DBG: There should be a better place for this, especially because it
  * also appears in dialog.cpp! */
 static const int CMD_QUIT   = MAX_COMMAND + 1;
