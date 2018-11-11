@@ -20,6 +20,7 @@ class NCWindow {
     NCursesPanel * pBackground;
     NCursesPanel * pContactsPanel;
     NCursesPanel * pHistoryPanel;
+    // NCursesPad *   pHistoryPanel;
     NCursesPanel * pMessagePanel;
     // username of the user that logged in
     std::string username;

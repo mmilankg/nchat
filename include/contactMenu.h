@@ -46,6 +46,8 @@ public:
         InitMenu(paItems, false, true);
         set_format(1, nItems);
     }
+
+    void handleKey(int key);
 };
 
 class SentContactRequest : public NCursesMenu {

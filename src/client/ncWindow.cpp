@@ -1,4 +1,5 @@
 #include "contactMenu.h"
+#include "keys.h"
 #include "ncWindow.h"
 #include "popup.h"
 #include "user.h"
@@ -25,21 +26,21 @@ NCWindow::NCWindow(Socket * pSock, const std::string & uname) : pSocket(pSock), 
 
     /* Create the contacts panel. */
     pContactsPanel = new NCursesPanel(pBackground->height() - 2, pBackground->width() / 3 - 1, 1, 1);
-    pContactsPanel->boldframe("Contacts");
+    pContactsPanel->frame("Contacts");
 
     /* Create chat history panel. */
     pHistoryPanel = new NCursesPanel(2 * pBackground->height() / 3 - 1,
                                      2 * pBackground->width() / 3 - 1,
                                      1,
                                      pBackground->width() / 3 + 1);
-    pHistoryPanel->boldframe("History");
+    pHistoryPanel->frame("History");
 
     /* Create current message panel. */
     pMessagePanel = new NCursesPanel(pBackground->height() / 3 - 1,
                                      2 * pBackground->width() / 3 - 1,
                                      2 * pBackground->height() / 3 + 1,
                                      pBackground->width() / 3 + 1);
-    pMessagePanel->boldframe("Message");
+    pMessagePanel->frame("Message");
 
     /* Create menu for each user in the list of contacts. */
     for (std::vector<Contact>::iterator it = contacts.begin(); it != contacts.end(); it++) {
@@ -60,27 +61,67 @@ void NCWindow::run()
     int    stdinFD  = fileno(stdin);
     int    socketFD = pSocket->getSfd();
     int    nSockets = socketFD;
+    // for panel selection
     enum PanelSelection { eTopMenu, eContacts, eHistory, eMessage };
     PanelSelection panelSelection = eTopMenu;
+    // contact selection in the contacts menu
+    /* DBG: Selected contact should be updated by processing up/down arrow keys when the contacts panel is selected, but
+     * this hasn't been implemented yet.  So far, only the first contact will be used. */
+    int selectedContact = 0;
 
     /* DBG: Set up buffer for receiving messages from the server. */
     std::vector<char> buffer;
     bool              logout = false;
     bool              exit   = false;
     while (!logout && !exit) {
-        /*
-         * Prepare for the select() call that should intercept socket and
-         * keyboard events.
-         */
+        // Prepare for the select() call that should intercept socket and keyboard events.
         FD_ZERO(&fileDescriptors);
         FD_SET(stdinFD, &fileDescriptors);
         FD_SET(socketFD, &fileDescriptors);
         select(nSockets + 1, &fileDescriptors, 0, 0, 0);
         if (FD_ISSET(stdinFD, &fileDescriptors)) {
             int key = getch();
-            pTopMenu->handleKey(key);
-            logout = pTopMenu->getLogoutStatus();
-            exit   = pTopMenu->getExitStatus();
+            // Use the horizontal tab key to switch between panels.
+            if (key == KEY_HTAB) {
+                panelSelection = PanelSelection(panelSelection + 1);
+                if (panelSelection > eMessage) panelSelection = eTopMenu;
+                switch (panelSelection) {
+                case eTopMenu: {
+                    pMessagePanel->frame("Message");
+                    break;
+                }
+                case eContacts: {
+                    pContactsPanel->boldframe("Contacts");
+                    break;
+                }
+                case eHistory: {
+                    pContactsPanel->frame("Contacts");
+                    pHistoryPanel->boldframe("History");
+                    break;
+                }
+                case eMessage: {
+                    pHistoryPanel->frame("History");
+                    pMessagePanel->boldframe("Message");
+                    break;
+                }
+                }
+            }
+            else {
+                switch (panelSelection) {
+                case eTopMenu: {
+                    pTopMenu->handleKey(key);
+                    logout = pTopMenu->getLogoutStatus();
+                    exit   = pTopMenu->getExitStatus();
+                    break;
+                }
+                case eContacts: {
+                    /* DBG: Is downcasting acceptable? */
+                    if (vpContactMenus.size() > 0) ((ContactMenu *)vpContactMenus[selectedContact])->handleKey(key);
+                    break;
+                }
+                }
+            }
+            pBackground->refresh();
         }
         if (FD_ISSET(socketFD, &fileDescriptors)) {
             /* message processing similar to the server process */
