@@ -1,6 +1,7 @@
 #ifndef NCWINDOW_H
 #define NCWINDOW_H
 
+#include "contactMenu.h"
 #include "socket.h"
 #include "topMenu.h"
 #include "user.h"
@@ -48,7 +49,7 @@ public:
     std::string & getUsername() { return username; }
 
 private:
-    void addContact(const std::string & username, int origin);
+    void addContact(const std::string & username, ContactType contactType);
     void handleContactRequest(const std::string & username, int response);
 };
 

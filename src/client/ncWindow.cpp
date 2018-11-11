@@ -64,9 +64,9 @@ void NCWindow::run()
     PanelSelection panelSelection = eTopMenu;
 
     /* DBG: Set up buffer for receiving messages from the server. */
-    char * buffer = new char[1024]();
-    bool   logout = false;
-    bool   exit   = false;
+    std::vector<char> buffer;
+    bool              logout = false;
+    bool              exit   = false;
     while (!logout && !exit) {
         /*
          * Prepare for the select() call that should intercept socket and
@@ -88,25 +88,25 @@ void NCWindow::run()
             MessageType messageType;
             pSocket->recv(messageLength);
             pSocket->recv(messageType);
-            pSocket->recv(buffer);
             int contentLength = messageLength - sizeof(messageLength) - sizeof(messageType);
+            pSocket->recv(buffer, contentLength);
 
             // Process the message.
             switch (messageType) {
             // server response to a sent request for establishing a contact with another user
             case mFindUser: {
-                int serverResponse = *buffer;
-                buffer += sizeof(serverResponse);
-                std::string    requestedUsername = buffer;
+                int serverResponse;
+                std::memcpy(&serverResponse, buffer.data(), sizeof(serverResponse));
+                std::string    requestedUsername = buffer.data() + sizeof(serverResponse);
                 FindUserDialog findUserResponse(serverResponse, requestedUsername);
                 findUserResponse.run();
 
                 /* Add the contact entry to the contacts panel. */
-                if (serverResponse == 0) addContact(requestedUsername, 1);
+                if (serverResponse == 0) addContact(requestedUsername, cSentContact);
                 break;
             }
             case mContactRequest: {
-                std::string sendingUsername = buffer;
+                std::string sendingUsername = buffer.data();
                 // user's response to the contact request:
                 // 0: accept
                 // 1: reject
@@ -119,6 +119,23 @@ void NCWindow::run()
 
                 break;
             }
+            case mEstablishedContact: {
+                /*
+                 * In the first instance, receive data based on what is sent through User::transmit() function.  A
+                 * better implementation would create a new object of the User class (or, possibly even better, of a
+                 * Contact class), place it into a vector and use its member function to receive the data from the
+                 * server.
+                 */
+                int userID;
+                std::memcpy(&userID, buffer.data(), sizeof(userID));
+                std::string username = buffer.data() + sizeof(userID);
+                std::string name     = buffer.data() + sizeof(userID) + username.length() + 1;
+                int         status;
+                std::memcpy(&userID,
+                            buffer.data() + sizeof(userID) + username.length() + 1 + name.length() + 1,
+                            sizeof(status));
+                addContact(username, cEstablishedContact);
+            }
             }
         }
     }
@@ -130,19 +147,16 @@ void NCWindow::run()
     pBackground->refresh();
 }
 
-void NCWindow::addContact(const std::string & username, int origin)
+void NCWindow::addContact(const std::string & username, ContactType contactType)
 {
-    /*
-     * Add an entry into the contacts panel.  If origin is 0, this will be an entry for a user who sent the contact
-     * request.  If origin is 1, it will be for a user who receives it.
-     *
-     * DBG: Is this considered a bad practice?  Would an enumerated type be better to use for origin?
-     */
+    /* Add an entry into the contacts panel. */
     NCursesMenu * pContact;
-    if (origin == 0)
-        pContact = new ReceivedContactRequest(username, vpContactMenus.size());
-    else
+    if (contactType == cEstablishedContact)
+        pContact = new ContactMenu(username, vpContactMenus.size());
+    else if (contactType == cSentContact)
         pContact = new SentContactRequest(username, vpContactMenus.size());
+    else
+        pContact = new ReceivedContactRequest(username, vpContactMenus.size());
     vpContactMenus.push_back(pContact);
     pContact->post();
     pContact->show();
@@ -166,7 +180,7 @@ void NCWindow::handleContactRequest(const std::string & username, int response)
         break;
     }
     case (2): {
-        addContact(username, 0);
+        addContact(username, cReceivedContact);
         break;
     }
     }

@@ -4,6 +4,12 @@
 #include <cursesm.h>
 #include <string>
 
+enum ContactType {
+    cEstablishedContact, // established contact
+    cSentContact,        // sent contact request
+    cReceivedContact     // received contact request
+};
+
 class TextItem : public NCursesMenuItem {
 public:
     TextItem(const char * pTitle) : NCursesMenuItem(pTitle) {}

@@ -2,6 +2,7 @@
 #include "message.h"
 #include "server.h"
 #include "trace.h"
+#include <algorithm>
 #include <signal.h>
 #include <cassert>
 #include <chrono>
@@ -402,9 +403,19 @@ void Server::findUser(Connection * connection, const std::string & requestedUser
             serverResponse = 0;
 
             std::vector<int> & sentContactRequestIDs = users[sendingUserID].getSentContactRequestIDs();
-            sentContactRequestIDs.push_back(requestedUserID);
+            // Add the contact request if it doesn't already exist.
+            /* DBG: It seems the std::find() function is not very efficient.  A suggested solution is to use
+             * std::unordered_set instead:
+             * https://stackoverflow.com/questions/10376065/pushing-unique-data-into-vector
+             * Possibly left for later.
+             */
+            if (std::find(sentContactRequestIDs.begin(), sentContactRequestIDs.end(), requestedUserID)
+                == sentContactRequestIDs.end())
+                sentContactRequestIDs.push_back(requestedUserID);
             std::vector<int> & receivedContactRequestIDs = requestedUser.getReceivedContactRequestIDs();
-            receivedContactRequestIDs.push_back(sendingUserID);
+            if (std::find(receivedContactRequestIDs.begin(), receivedContactRequestIDs.end(), sendingUserID)
+                == receivedContactRequestIDs.end())
+                receivedContactRequestIDs.push_back(sendingUserID);
             Connection * requestedUserConnection = requestedUser.getConnection();
             if (requestedUserConnection != 0) requestedUserConnection->transmit(mContactRequest, sendingUsername);
             updateUsersFile();
