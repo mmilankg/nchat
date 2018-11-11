@@ -29,10 +29,7 @@ void Connection::transmit(MessageType messageType, const std::vector<char> & mes
 
 void Connection::transmit(MessageType messageType, const std::string & messageContent)
 {
-    int messageLength = sizeof(messageLength) + sizeof(messageType) + messageContent.size();
-    pSocket->send(messageLength);
-    pSocket->send(messageType);
-    pSocket->send(messageContent);
+    pSocket->send(messageType, messageContent);
 }
 
 void Connection::transmit(MessageType messageType, int messageContent)
