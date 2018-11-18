@@ -196,6 +196,19 @@ void NCWindow::run()
                             buffer.data() + sizeof(userID) + username.length() + 1 + name.length() + 1,
                             sizeof(status));
                 addContact(username, cEstablishedContact);
+                break;
+            }
+            case mText: {
+                /*
+                 * In the first instance, just receive the message and display it in the message history.  This means
+                 * that messages from all contacts will be displayed there in this implementation.  A better solution
+                 * would be to display a contact-specific message history, but that requires storing contact-specific
+                 * messages in a buffer or a file, where they are stored for displaying when that contact is selected.
+                 */
+                std::string senderUsername = buffer.data();
+                std::string message        = buffer.data() + senderUsername.length() + 1;
+                displayMessage(senderUsername, message);
+                break;
             }
             }
         }
@@ -260,4 +273,13 @@ void NCWindow::handleContactRequest(const std::string & username, int response)
         pSocket->send(mContactRequest);
         pSocket->send(messageContent);
     }
+}
+
+void NCWindow::displayMessage(const std::string & senderUsername, const std::string & message)
+{
+    pHistoryPanel->move(1, 1);
+    pHistoryPanel->addstr(senderUsername.c_str());
+    pHistoryPanel->addstr(" > ");
+    pHistoryPanel->addstr(message.c_str());
+    pHistoryPanel->refresh();
 }

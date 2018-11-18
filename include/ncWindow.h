@@ -52,6 +52,7 @@ public:
 private:
     void addContact(const std::string & username, ContactType contactType);
     void handleContactRequest(const std::string & username, int response);
+    void displayMessage(const std::string & senderUsername, const std::string & message);
 };
 
 #endif // NCWINDOW_H

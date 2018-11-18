@@ -19,6 +19,7 @@ public:
     void transmit(const std::vector<char> & message) { pSocket->send(message); }
     void transmit(MessageType messageType, const std::vector<char> & messageContent);
     void transmit(MessageType messageType, const std::string & messageContent);
+    void transmit(MessageType messageType, const std::vector<std::string> & contents);
     void transmit(MessageType messageType, int messageContent);
 
     Socket * getSocket() { return pSocket; }

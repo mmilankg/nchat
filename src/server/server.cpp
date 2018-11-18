@@ -147,6 +147,14 @@ void Server::react(Connection * connection, MessageType messageType, const std::
         handleContactResponse(connection, clientResponse, username);
         break;
     }
+    case mText: {
+        std::vector<std::string> contents;
+        bufferToStrings(message, contents);
+        std::string recipientUsername = contents[0];
+        std::string messageContent    = contents[1];
+        forwardTextMessage(connection, recipientUsername, messageContent);
+        break;
+    }
     case mQuit: {
         quit(connection);
         break;
@@ -459,6 +467,39 @@ void Server::handleContactResponse(Connection * connection, int clientResponse, 
         users[receivingUserID].addContact(sendingUserID);
         updateUsersFile();
     }
+}
+
+void Server::forwardTextMessage(Connection *        connection,
+                                const std::string & recipientUsername,
+                                const std::string & messageContent)
+{
+    int senderID;
+    // Identify the sender from the connection.
+    /* DBG: This is inefficient.  It would be better if the connection itself stored a user reference or pointer. */
+    for (auto && user : users) {
+        if (user.getConnection() == connection) {
+            senderID = user.getUserID();
+            break;
+        }
+    }
+    assert(senderID > 0);
+
+    Connection * recipientConnection;
+    // Identify the recipient from their username.
+    /* DBG: This is inefficient, too.  Perhaps it should also be done in the same loop that processes the sender. */
+    for (auto && user : users) {
+        if (user.getUsername() == recipientUsername) {
+            recipientConnection = user.getConnection();
+            break;
+        }
+    }
+    assert(recipientConnection > 0);
+
+    // Forward the message.
+    MessageType messageType = mText;
+    // Replace the recipient name with the sender name.
+    std::vector<std::string> contents = {users[senderID].getUsername(), messageContent};
+    recipientConnection->transmit(messageType, contents);
 }
 
 void Server::bufferToStrings(char * buffer, int bufferLength, std::vector<std::string> & strings) const
