@@ -34,6 +34,11 @@ NCWindow::NCWindow(Socket * pSock, const std::string & uname) : pSocket(pSock), 
                                      1,
                                      pBackground->width() / 3 + 1);
     pHistoryPanel->frame("History");
+    /* Create the display area of the history panel. */
+    pInnerHistoryPanel = new NCursesPanel(pHistoryPanel->height() - 2,
+                                          pHistoryPanel->width() - 2,
+                                          2,
+                                          pBackground->width() / 3 + 2);
 
     /* Create current message panel. */
     pMessagePanel = new NCursesPanel(pBackground->height() / 3 - 1,
@@ -41,6 +46,11 @@ NCWindow::NCWindow(Socket * pSock, const std::string & uname) : pSocket(pSock), 
                                      2 * pBackground->height() / 3 + 1,
                                      pBackground->width() / 3 + 1);
     pMessagePanel->frame("Message");
+    /* Create the display area of the message panel. */
+    pInnerMessagePanel = new NCursesPanel(pMessagePanel->height() - 2,
+                                          pMessagePanel->width() - 2,
+                                          2 * pBackground->height() / 3 + 2,
+                                          pBackground->width() / 3 + 2);
 
     /* Create menu for each user in the list of contacts. */
     for (std::vector<Contact>::iterator it = contacts.begin(); it != contacts.end(); it++) {
@@ -130,12 +140,24 @@ void NCWindow::run()
                         contents.push_back(username);
                         ::echo();
                         std::string message;
-                        pMessagePanel->move(1, 1);
+                        pInnerMessagePanel->move(1, 1);
                         int character;
-                        while ((character = pMessagePanel->getch()) != '\n') message.push_back(character);
+                        while ((character = pInnerMessagePanel->getch()) != '\n') message.push_back(character);
                         ::noecho();
                         contents.push_back(message);
                         pSocket->send(mText, contents);
+                        /* Transfer the message into the history panel (right-align). */
+                        pInnerMessagePanel->move(1, 1);
+                        for (int i = 0; i < message.length(); i++) pInnerMessagePanel->addch(' ');
+                        pInnerMessagePanel->refresh();
+                        pInnerMessagePanel->move(1, 1);
+                        int x0, y0;
+                        pInnerHistoryPanel->getyx(y0, x0);
+                        x0 = pInnerHistoryPanel->width() - message.length() - 6;
+                        pInnerHistoryPanel->move(y0 + 1, x0);
+                        pInnerHistoryPanel->addstr("me > ");
+                        pInnerHistoryPanel->addstr(message.c_str());
+                        pInnerHistoryPanel->refresh();
                     }
                     break;
                 }
@@ -277,9 +299,11 @@ void NCWindow::handleContactRequest(const std::string & username, int response)
 
 void NCWindow::displayMessage(const std::string & senderUsername, const std::string & message)
 {
-    pHistoryPanel->move(1, 1);
-    pHistoryPanel->addstr(senderUsername.c_str());
-    pHistoryPanel->addstr(" > ");
-    pHistoryPanel->addstr(message.c_str());
-    pHistoryPanel->refresh();
+    int x0, y0;
+    pInnerHistoryPanel->getyx(y0, x0);
+    pInnerHistoryPanel->move(y0 + 1, 1);
+    pInnerHistoryPanel->addstr(senderUsername.c_str());
+    pInnerHistoryPanel->addstr(" > ");
+    pInnerHistoryPanel->addstr(message.c_str());
+    pInnerHistoryPanel->refresh();
 }

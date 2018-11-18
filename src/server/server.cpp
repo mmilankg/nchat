@@ -493,13 +493,14 @@ void Server::forwardTextMessage(Connection *        connection,
             break;
         }
     }
-    assert(recipientConnection > 0);
 
-    // Forward the message.
-    MessageType messageType = mText;
-    // Replace the recipient name with the sender name.
-    std::vector<std::string> contents = {users[senderID].getUsername(), messageContent};
-    recipientConnection->transmit(messageType, contents);
+    // Forward the message if the recipient is online.
+    if (recipientConnection > 0) {
+        MessageType messageType = mText;
+        // Replace the recipient name with the sender name.
+        std::vector<std::string> contents = {users[senderID].getUsername(), messageContent};
+        recipientConnection->transmit(messageType, contents);
+    }
 }
 
 void Server::bufferToStrings(char * buffer, int bufferLength, std::vector<std::string> & strings) const

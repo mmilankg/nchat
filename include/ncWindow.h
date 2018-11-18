@@ -21,6 +21,8 @@ class NCWindow {
     NCursesPanel * pContactsPanel;
     NCursesPanel * pHistoryPanel;
     // NCursesPad *   pHistoryPanel;
+    NCursesPanel * pInnerHistoryPanel;
+    NCursesPanel * pInnerMessagePanel;
     NCursesPanel * pMessagePanel;
     // username of the user that logged in
     std::string username;
@@ -37,7 +39,9 @@ public:
         delete pTopMenu;
         delete pContactsPanel;
         delete pHistoryPanel;
+        delete pInnerHistoryPanel;
         delete pMessagePanel;
+        delete pInnerMessagePanel;
         for (auto pContactMenu : vpContactMenus) {
             pContactMenu->unpost();
             pContactMenu->hide();
