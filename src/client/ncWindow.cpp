@@ -138,12 +138,23 @@ void NCWindow::run()
                         std::string              username = (*vpContactMenus[selectedContact])[0]->name();
                         std::vector<std::string> contents;
                         contents.push_back(username);
-                        ::echo();
                         std::string message;
                         pInnerMessagePanel->move(1, 1);
                         int character;
-                        while ((character = pInnerMessagePanel->getch()) != '\n') message.push_back(character);
-                        ::noecho();
+                        int x, y;
+                        while ((character = pInnerMessagePanel->getch()) != '\n') {
+                            if (character == KEY_BACKSPACE) {
+                                message.pop_back();
+                                pInnerMessagePanel->getyx(y, x);
+                                pInnerMessagePanel->move(y, x - 1);
+                                pInnerMessagePanel->addch(' ');
+                                pInnerMessagePanel->move(y, x - 1);
+                            }
+                            else {
+                                message.push_back(character);
+                                pInnerMessagePanel->addch(character);
+                            }
+                        }
                         contents.push_back(message);
                         pSocket->send(mText, contents);
                         /* Transfer the message into the history panel (right-align). */
