@@ -49,6 +49,7 @@ private:
     void forwardTextMessage(Connection *        connection,
                             const std::string & recipientUsername,
                             const std::string & messageContent);
+    void forwardCallRequest(Connection * connection, const std::string & requestedUsername);
 
     void bufferToStrings(char * buffer, int bufferLength, std::vector<std::string> & strings) const;
     void bufferToStrings(const std::vector<char> & buffer, std::vector<std::string> & strings) const;

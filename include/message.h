@@ -19,6 +19,7 @@ enum MessageType {
     mSignupName,             // send the name of the user to be signed up
     mPassword,               // send the password of the user to be signed up
     mText,                   // text message to another user
+    mCall,                   // request/receive a voice call with another user
     mVoice                   // voice message to another user
 };
 

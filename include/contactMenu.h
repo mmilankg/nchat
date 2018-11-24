@@ -1,6 +1,7 @@
 #ifndef CONTACTMENU_H
 #define CONTACTMENU_H
 
+#include "socket.h"
 #include <cursesm.h>
 #include <string>
 
@@ -22,8 +23,12 @@ public:
 };
 
 class CallItem : public NCursesMenuItem {
+    ContactMenu * parent;
+
 public:
-    CallItem(const char * pTitle) : NCursesMenuItem(pTitle) {}
+    CallItem(ContactMenu * pParent, const char * pTitle) : NCursesMenuItem(pTitle), parent(pParent) {}
+
+    bool action();
 };
 
 class RemoveItem : public NCursesMenuItem {
@@ -33,19 +38,21 @@ public:
 
 class ContactMenu : public NCursesMenu {
 private:
+    Socket *           pSocket;
     NCursesMenuItem ** paItems;
     enum { nItems = 4 };
     int activatedItem = 0;
 
 public:
-    ContactMenu(const std::string & username, int position) :
+    ContactMenu(Socket * pSock, const std::string & username, int position) :
+        pSocket(pSock),
         NCursesMenu(1, username.length() + 2 + 7 * nItems + 2, 2 + position, 2),
         paItems(0)
     {
         paItems    = new NCursesMenuItem *[1 + nItems];
         paItems[0] = new NCursesMenuItem(username.c_str());
         paItems[1] = new TextItem(this, "Text   ");
-        paItems[2] = new CallItem("Call   ");
+        paItems[2] = new CallItem(this, "Call   ");
         paItems[3] = new RemoveItem("Remove ");
         paItems[4] = new NCursesMenuItem(); // empty item terminator
 
@@ -54,9 +61,10 @@ public:
         set_format(1, nItems);
     }
 
-    int  getActivated() const { return activatedItem; }
-    void setActivated(int activated) { activatedItem = activated; }
-    void handleKey(int key);
+    Socket * getSocket() const { return pSocket; }
+    int      getActivated() const { return activatedItem; }
+    void     setActivated(int activated) { activatedItem = activated; }
+    void     handleKey(int key);
 };
 
 class SentContactRequest : public NCursesMenu {

@@ -54,7 +54,7 @@ NCWindow::NCWindow(Socket * pSock, const std::string & uname) : pSocket(pSock), 
 
     /* Create menu for each user in the list of contacts. */
     for (std::vector<Contact>::iterator it = contacts.begin(); it != contacts.end(); it++) {
-        ContactMenu * pContactMenu = new ContactMenu(it->getUsername(), vpContactMenus.size());
+        ContactMenu * pContactMenu = new ContactMenu(pSocket, it->getUsername(), vpContactMenus.size());
         vpContactMenus.push_back(pContactMenu);
     }
 }
@@ -259,7 +259,7 @@ void NCWindow::addContact(const std::string & username, ContactType contactType)
     /* Add an entry into the contacts panel. */
     NCursesMenu * pContact;
     if (contactType == cEstablishedContact)
-        pContact = new ContactMenu(username, vpContactMenus.size());
+        pContact = new ContactMenu(pSocket, username, vpContactMenus.size());
     else if (contactType == cSentContact)
         pContact = new SentContactRequest(username, vpContactMenus.size());
     else
@@ -275,7 +275,7 @@ void NCWindow::handleContactRequest(const std::string & username, int response)
 {
     switch (response) {
     case (0): {
-        NCursesMenu * pContact = new ContactMenu(username, vpContactMenus.size());
+        NCursesMenu * pContact = new ContactMenu(pSocket, username, vpContactMenus.size());
         vpContactMenus.push_back(pContact);
         pContact->post();
         pContact->show();

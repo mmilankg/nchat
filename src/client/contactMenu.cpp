@@ -4,6 +4,17 @@
 bool TextItem::action()
 {
     parent->setActivated(1);
+    return false;
+}
+
+bool CallItem::action()
+{
+    /* Send the call request to the other user via server. */
+    std::string username      = (*parent)[0]->name();
+    int         messageLength = sizeof(messageLength) + sizeof(mCall) + username.length() + 1;
+    parent->getSocket()->send(messageLength);
+    parent->getSocket()->send(mCall);
+    parent->getSocket()->send(username);
 }
 
 /* DBG: There should be a better place for this, especially because it
