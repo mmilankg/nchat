@@ -243,6 +243,17 @@ void NCWindow::run()
                 displayMessage(senderUsername, message);
                 break;
             }
+            case mCall: {
+                // Handle a call request in a similar way to how contact requests are handled.
+                std::string initiatorUsername = buffer.data();
+                // user's response to initiated call request:
+                // 0: accept
+                // 1: reject
+                CallPopup callRequest(initiatorUsername);
+                callRequest();
+                int response = callRequest.getResponse();
+                break;
+            }
             }
         }
     }
