@@ -252,6 +252,9 @@ void NCWindow::run()
                 CallPopup callRequest(initiatorUsername);
                 callRequest();
                 int response = callRequest.getResponse();
+
+                handleCallRequest(initiatorUsername, response);
+
                 break;
             }
             }
@@ -317,6 +320,21 @@ void NCWindow::handleContactRequest(const std::string & username, int response)
         pSocket->send(mContactRequest);
         pSocket->send(messageContent);
     }
+}
+
+void NCWindow::handleCallRequest(const std::string & username, int response)
+{
+    int messageLength = sizeof(messageLength);
+    messageLength += sizeof(mCallRequest);
+    int messageContentLength = sizeof(int) + username.length() + 1;
+    messageLength += messageContentLength;
+    std::vector<char> messageContent;
+    messageContent.resize(messageContentLength);
+    std::memcpy(messageContent.data(), &response, sizeof(response));
+    std::memcpy(messageContent.data() + sizeof(response), username.c_str(), username.length());
+    pSocket->send(messageLength);
+    pSocket->send(mCallRequest);
+    pSocket->send(messageContent);
 }
 
 void NCWindow::displayMessage(const std::string & senderUsername, const std::string & message)

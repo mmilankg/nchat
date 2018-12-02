@@ -158,6 +158,13 @@ void Server::react(Connection * connection, MessageType messageType, const std::
     case mCall: {
         std::string requestedUsername = message.data();
         forwardCallRequest(connection, requestedUsername);
+        break;
+    }
+    case mCallRequest: {
+        int         clientResponse = *message.data();
+        std::string username       = message.data() + sizeof(clientResponse);
+        handleCallResponse(connection, clientResponse, username);
+        break;
     }
     case mQuit: {
         quit(connection);
@@ -529,6 +536,29 @@ void Server::forwardCallRequest(Connection * connection, const std::string & req
 
     // Forward the call request if the requested user is online.
     if (recipientConnection > 0) recipientConnection->transmit(mCall, users[senderID].getUsername());
+}
+
+void Server::handleCallResponse(Connection * connection, int clientResponse, const std::string & username)
+{
+    /* DBG: reused code from forwardTextMessage() */
+    int senderID;
+    for (auto && user : users) {
+        if (user.getConnection() == connection) {
+            senderID = user.getUserID();
+            break;
+        }
+    }
+    assert(senderID > 0);
+
+    Connection * recipientConnection;
+    for (auto && user : users) {
+        if (user.getUsername() == username) {
+            recipientConnection = user.getConnection();
+            break;
+        }
+    }
+
+    if (recipientConnection > 0) recipientConnection->transmit(mCallResponse, clientResponse);
 }
 
 void Server::bufferToStrings(char * buffer, int bufferLength, std::vector<std::string> & strings) const

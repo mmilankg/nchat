@@ -20,6 +20,8 @@ enum MessageType {
     mPassword,               // send the password of the user to be signed up
     mText,                   // text message to another user
     mCall,                   // request/receive a voice call with another user
+    mCallRequest,            // respond to a request for a voice call from another user
+    mCallResponse,           // transmit a response to a request for a voice call (DBG: too many call message types?)
     mVoice                   // voice message to another user
 };
 
